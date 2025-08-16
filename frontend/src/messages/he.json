@@ -1,0 +1,128 @@
+{
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "inventory": "מלאי",
+    "forecasts": "תחזיות",
+    "notifications": "התראות"
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "overview": "סקירת מלאי",
+    "totalValue": "ערך כולל",
+    "totalItems": "פריטים כולל",
+    "alerts": "התראות פעילות",
+    "urgentAlerts": "התראות דחופות",
+    "lowStock": "מלאי נמוך",
+    "outOfStock": "חסר במלאי",
+    "inventoryGraph": "מגמות מלאי",
+    "dismiss": "בטל",
+    "noAlerts": "אין התראות דחופות כרגע",
+    "lastUpdated": "עודכן לאחרונה",
+    "autoRefresh": "רענון אוטומטי פעיל",
+    "retry": "נסה שוב"
+  },
+  "inventory": {
+    "title": "ניהול מלאי",
+    "search": "חפש מוצרים...",
+    "category": "קטגוריה",
+    "allCategories": "כל הקטגוריות",
+    "addProduct": "הוסף מוצר",
+    "editProduct": "ערוך מוצר",
+    "deleteProduct": "מחק מוצר",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק מוצר זה?",
+    "cancel": "בטל",
+    "delete": "מחק",
+    "save": "שמור",
+    "name": "שם המוצר",
+    "sku": "מק\"ט",
+    "price": "מחיר",
+    "quantity": "כמות",
+    "minStock": "מלאי מינימלי",
+    "description": "תיאור",
+    "actions": "פעולות",
+    "edit": "ערוך",
+    "noProducts": "לא נמצאו מוצרים",
+    "itemsPerPage": "פריטים בעמוד",
+    "showing": "מציג",
+    "of": "מתוך",
+    "results": "תוצאות",
+    "previous": "הקודם",
+    "next": "הבא",
+    "stockLevel": {
+      "low": "מלאי נמוך",
+      "normal": "רגיל",
+      "high": "מלאי גבוה"
+    },
+    "categories": {
+      "beverages": "משקאות",
+      "baking": "אפייה",
+      "snacks": "חטיפים",
+      "dairy": "מוצרי חלב",
+      "meatPoultry": "בשר ועופות",
+      "produce": "פירות וירקות",
+      "other": "אחר"
+    }
+  },
+  "forecasts": {
+    "title": "תחזיות והמלצות",
+    "demandForecast": "תחזית ביקוש",
+    "recommendations": "המלצות AI",
+    "metrics": "מדדי תחזית",
+    "accuracy": "דיוק התחזית",
+    "trend": "כיוון המגמה",
+    "confidence": "רמת ביטחון",
+    "period": "תקופת התחזית",
+    "accept": "אשר",
+    "dismiss": "בטל",
+    "viewDetails": "צפה בפרטים",
+    "noRecommendations": "אין המלצות זמינות",
+    "filters": {
+      "all": "הכל",
+      "trend": "מגמה",
+      "priority": "עדיפות",
+      "type": "סוג",
+      "timePeriod": "תקופת זמן"
+    },
+    "trendTypes": {
+      "increasing": "עולה",
+      "decreasing": "יורד",
+      "stable": "יציב"
+    },
+    "priorities": {
+      "high": "גבוהה",
+      "medium": "בינונית",
+      "low": "נמוכה"
+    },
+    "types": {
+      "reorder": "הזמנה מחדש",
+      "optimize": "אופטימיזציה",
+      "alert": "התראה"
+    }
+  },
+  "common": {
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "warning": "אזהרה",
+    "info": "מידע",
+    "close": "סגור",
+    "back": "חזור",
+    "continue": "המשך",
+    "submit": "שלח",
+    "reset": "אפס",
+    "language": "שפה",
+    "english": "English",
+    "hebrew": "עברית"
+  },
+  "notifications": {
+    "productAdded": "המוצר נוסף בהצלחה",
+    "productUpdated": "המוצר עודכן בהצלחה",
+    "productDeleted": "המוצר נמחק בהצלחה",
+    "alertDismissed": "ההתראה בוטלה",
+    "recommendationAccepted": "ההמלצה אושרה",
+    "recommendationDismissed": "ההמלצה בוטלה",
+    "errorOccurred": "אירעה שגיאה",
+    "retry": "נסה שוב",
+    "dataRefreshed": "הנתונים רוענו בהצלחה"
+  }
+}

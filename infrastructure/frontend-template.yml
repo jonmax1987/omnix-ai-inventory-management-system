@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'OMNIX AI - Frontend Static Website Hosting Infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+    
+  ProjectName:
+    Type: String
+    Default: omnix-ai-frontend
+    Description: Project name for resource naming
+
+Resources:
+  # S3 Bucket for Static Website Hosting
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-${Environment}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: frontend-hosting
+
+  # Bucket Policy for Public Read Access
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub "${FrontendBucket}/*"
+
+Outputs:
+  FrontendBucketName:
+    Description: "Frontend S3 bucket name"
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub "${ProjectName}-bucket-${Environment}"
+
+  WebsiteURL:
+    Description: "Website URL"
+    Value: !Sub "http://${FrontendBucket}.s3-website.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${ProjectName}-website-url-${Environment}"
+
+  BucketDomainName:
+    Description: "Bucket domain name"
+    Value: !GetAtt FrontendBucket.DomainName
+    Export:
+      Name: !Sub "${ProjectName}-bucket-domain-${Environment}"

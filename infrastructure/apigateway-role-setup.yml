@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Setup API Gateway CloudWatch Role'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Environment name
+    
+  ProjectName:
+    Type: String
+    Default: omnix-ai
+    Description: Project name for resource naming
+
+Resources:
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-apigateway-cloudwatch-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+Outputs:
+  ApiGatewayCloudWatchRoleArn:
+    Description: "API Gateway CloudWatch role ARN"
+    Value: !GetAtt ApiGatewayCloudWatchRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-apigateway-cloudwatch-role-arn-${Environment}"

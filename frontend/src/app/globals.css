@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+  font-family: "Noto Sans Hebrew", Arial, sans-serif;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* RTL-specific overrides */
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+[dir="rtl"] .sidebar {
+  right: 0;
+  left: auto;
+}
+
+[dir="rtl"] .main-content {
+  margin-right: 280px;
+  margin-left: 0;
+}
+
+/* Layout classes for Hebrew and English */
+.hebrew-layout {
+  font-family: "Noto Sans Hebrew", Arial, sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+.english-layout {
+  font-family: Arial, Helvetica, sans-serif;
+  direction: ltr;
+  text-align: left;
+}

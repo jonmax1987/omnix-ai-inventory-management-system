@@ -1,0 +1,564 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'OMNIX AI - Complete Infrastructure Stack for Smart Inventory Management'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+    
+  ProjectName:
+    Type: String
+    Default: omnix-ai
+    Description: Project name for resource naming
+    
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Custom domain name (optional)
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, prod]
+  HasCustomDomain: !Not [!Equals [!Ref DomainName, ""]]
+
+Resources:
+  # ===========================
+  # DynamoDB Tables
+  # ===========================
+  
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-products-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: category
+          AttributeType: S
+        - AttributeName: sku
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: category-index
+          KeySchema:
+            - AttributeName: category
+              KeyType: HASH
+            - AttributeName: id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: sku-index
+          KeySchema:
+            - AttributeName: sku
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      DeletionProtectionEnabled: !If [IsProduction, true, false]
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: inventory-management
+
+  HistoricalDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-historical-data-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: product_id
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: product_id
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: historical-data
+
+  ForecastsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-forecasts-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: product_id
+          AttributeType: S
+        - AttributeName: forecast_date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: product_id
+          KeyType: HASH
+        - AttributeName: forecast_date
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: forecast-date-index
+          KeySchema:
+            - AttributeName: forecast_date
+              KeyType: HASH
+            - AttributeName: product_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: forecasting
+
+  AlertsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-alerts-${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: priority
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: priority-created-index
+          KeySchema:
+            - AttributeName: priority
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: alerts
+
+  # ===========================
+  # SQS Queues
+  # ===========================
+
+  ForecastingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-forecasting-queue-${Environment}"
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 1209600  # 14 days
+      ReceiveMessageWaitTimeSeconds: 20  # Long polling
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ForecastingDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: forecasting
+
+  ForecastingDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-forecasting-dlq-${Environment}"
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: forecasting
+
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-notifications-queue-${Environment}"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600  # 4 days
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: notifications
+
+  # ===========================
+  # S3 Buckets
+  # ===========================
+
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-data-lake-${Environment}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: !If [IsProduction, Enabled, Suspended]
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArchiveOldData
+            Status: Enabled
+            ExpirationInDays: !If [IsProduction, 2555, 365]  # 7 years prod, 1 year dev
+            NoncurrentVersionExpirationInDays: 30
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+          - Id: TransitionToGlacier
+            Status: Enabled
+            Transitions:
+             - StorageClass: GLACIER
+               TransitionInDays: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: data-lake
+
+  StaticAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-static-assets-${Environment}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: static-assets
+
+  # ===========================
+  # API Gateway
+  # ===========================
+
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "${ProjectName}-api-${Environment}"
+      Description: OMNIX AI Inventory Management API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      BinaryMediaTypes:
+        - '*/*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Service
+          Value: api-gateway
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayResourceV1
+      - ApiGatewayOptionsMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      Description: !Sub "Deployment for ${Environment} environment"
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref ApiGatewayDeployment
+      StageName: !Ref Environment
+      Description: !Sub "Stage for ${Environment} environment"
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          LoggingLevel: !If [IsProduction, ERROR, INFO]
+          DataTraceEnabled: !If [IsProduction, false, true]
+          MetricsEnabled: true
+          ThrottlingBurstLimit: 5000
+          ThrottlingRateLimit: 2000
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiGatewayLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","caller":"$context.identity.caller","user":"$context.identity.user","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","requestLength":"$context.requestLength","integrationLatency":"$context.integrationLatency","responseLatency":"$context.responseLatency"}'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  ApiGatewayResourceV1:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: v1
+
+  # API Gateway CORS
+  ApiGatewayOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayResourceV1
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # ===========================
+  # CloudWatch Resources
+  # ===========================
+
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${ProjectName}-${Environment}"
+      RetentionInDays: !If [IsProduction, 30, 14]
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}"
+      RetentionInDays: !If [IsProduction, 30, 14]
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # ===========================
+  # IAM Roles
+  # ===========================
+
+  # Using existing Lambda execution role
+  # LambdaExecutionRole: omnix-ai-lambda-execution-role-dev (already exists)
+# ApiGatewayCloudWatchRole is created in separate stack
+  # Using import reference instead
+
+  # ===========================
+  # CloudWatch Alarms
+  # ===========================
+
+  HighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-high-error-rate-${Environment}"
+      AlarmDescription: "High error rate detected in API Gateway"
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub "${ProjectName}-api-${Environment}"
+        - Name: Stage
+          Value: !Ref Environment
+      AlarmActions:
+        - !Ref AlertsTopic
+      TreatMissingData: notBreaching
+
+  # ===========================
+  # SNS Topics
+  # ===========================
+
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ProjectName}-alerts-${Environment}"
+      DisplayName: OMNIX AI Alerts
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # ===========================
+  # EventBridge Rules
+  # ===========================
+
+  DailyForecastingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-daily-forecasting-${Environment}"
+      Description: "Trigger daily batch forecasting"
+      ScheduleExpression: "cron(0 2 * * ? *)"  # Daily at 2 AM UTC
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ForecastingQueue.Arn
+          Id: "ForecastingQueueTarget"
+
+# ===========================
+# Outputs
+# ===========================
+
+Outputs:
+  # DynamoDB Tables
+  ProductsTableName:
+    Description: "Products DynamoDB table name"
+    Value: !Ref ProductsTable
+    Export:
+      Name: !Sub "${ProjectName}-products-table-${Environment}"
+
+  HistoricalDataTableName:
+    Description: "Historical data DynamoDB table name"
+    Value: !Ref HistoricalDataTable
+    Export:
+      Name: !Sub "${ProjectName}-historical-data-table-${Environment}"
+
+  ForecastsTableName:
+    Description: "Forecasts DynamoDB table name"
+    Value: !Ref ForecastsTable
+    Export:
+      Name: !Sub "${ProjectName}-forecasts-table-${Environment}"
+
+  AlertsTableName:
+    Description: "Alerts DynamoDB table name"
+    Value: !Ref AlertsTable
+    Export:
+      Name: !Sub "${ProjectName}-alerts-table-${Environment}"
+
+  # SQS Queues
+  ForecastingQueueUrl:
+    Description: "Forecasting SQS queue URL"
+    Value: !Ref ForecastingQueue
+    Export:
+      Name: !Sub "${ProjectName}-forecasting-queue-url-${Environment}"
+
+  ForecastingQueueArn:
+    Description: "Forecasting SQS queue ARN"
+    Value: !GetAtt ForecastingQueue.Arn
+    Export:
+      Name: !Sub "${ProjectName}-forecasting-queue-arn-${Environment}"
+
+  # S3 Buckets
+  DataLakeBucketName:
+    Description: "Data Lake S3 bucket name"
+    Value: !Ref DataLakeBucket
+    Export:
+      Name: !Sub "${ProjectName}-data-lake-bucket-${Environment}"
+
+  StaticAssetsBucketName:
+    Description: "Static Assets S3 bucket name"
+    Value: !Ref StaticAssetsBucket
+    Export:
+      Name: !Sub "${ProjectName}-static-assets-bucket-${Environment}"
+
+  # API Gateway
+  ApiGatewayId:
+    Description: "API Gateway REST API ID"
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub "${ProjectName}-api-gateway-id-${Environment}"
+
+  ApiGatewayUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: !Sub "${ProjectName}-api-gateway-url-${Environment}"
+
+  ApiGatewayStage:
+    Description: "API Gateway stage name"
+    Value: !Ref ApiGatewayStage
+    Export:
+      Name: !Sub "${ProjectName}-api-gateway-stage-${Environment}"
+
+  # IAM Roles
+  LambdaExecutionRoleArn:
+    Description: "Lambda execution role ARN"
+    Value: arn:aws:iam::631844602411:role/omnix-ai-lambda-execution-role-dev
+    Export:
+      Name: !Sub "${ProjectName}-lambda-execution-role-arn-${Environment}"
+
+  # CloudWatch
+  ApiGatewayLogGroupName:
+    Description: "API Gateway CloudWatch log group name"
+    Value: !Ref ApiGatewayLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-api-gateway-log-group-${Environment}"
+
+  LambdaLogGroupName:
+    Description: "Lambda CloudWatch log group name"
+    Value: !Ref LambdaLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-lambda-log-group-${Environment}"
+
+  # SNS
+  AlertsTopicArn:
+    Description: "Alerts SNS topic ARN"
+    Value: !Ref AlertsTopic
+    Export:
+      Name: !Sub "${ProjectName}-alerts-topic-arn-${Environment}"

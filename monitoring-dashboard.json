@@ -1,0 +1,147 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "AWS/Lambda", "Invocations", "FunctionName", "omnix-ai-backend-dev" ],
+          [ ".", "Errors", ".", "." ],
+          [ ".", "Duration", ".", "." ],
+          [ ".", "Throttles", ".", "." ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "Lambda Backend Performance",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "AWS/ApiGateway", "Count", "ApiName", "omnix-ai-api-dev" ],
+          [ ".", "4XXError", ".", "." ],
+          [ ".", "5XXError", ".", "." ],
+          [ ".", "Latency", ".", "." ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "API Gateway Performance",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "omnix-ai-products-dev" ],
+          [ ".", "ConsumedWriteCapacityUnits", ".", "." ],
+          [ ".", "ThrottledRequests", ".", "." ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "DynamoDB Performance",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 6,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "AWS/CloudFront", "Requests", "DistributionId", "E1Z02GS3EMTS0F" ],
+          [ ".", "BytesDownloaded", ".", "." ],
+          [ ".", "4xxErrorRate", ".", "." ],
+          [ ".", "5xxErrorRate", ".", "." ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "CloudFront CDN Performance",
+        "period": 300
+      }
+    },
+    {
+      "type": "log",
+      "x": 0,
+      "y": 12,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE '/aws/lambda/omnix-ai-backend-dev'\n| fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 100",
+        "region": "eu-central-1",
+        "title": "Recent Errors",
+        "view": "table"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 18,
+      "width": 8,
+      "height": 4,
+      "properties": {
+        "metrics": [
+          [ "AWS/Lambda", "ConcurrentExecutions", "FunctionName", "omnix-ai-backend-dev" ]
+        ],
+        "view": "singleValue",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "Lambda Concurrent Executions",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 18,
+      "width": 8,
+      "height": 4,
+      "properties": {
+        "metrics": [
+          [ "AWS/ApiGateway", "Count", "ApiName", "omnix-ai-api-dev" ]
+        ],
+        "view": "singleValue",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "API Gateway Requests/5min",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 18,
+      "width": 8,
+      "height": 4,
+      "properties": {
+        "metrics": [
+          [ "AWS/DynamoDB", "ItemCount", "TableName", "omnix-ai-products-dev" ]
+        ],
+        "view": "singleValue",
+        "stacked": false,
+        "region": "eu-central-1",
+        "title": "DynamoDB Items",
+        "period": 300
+      }
+    }
+  ]
+}
