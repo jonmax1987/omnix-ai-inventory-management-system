@@ -2,8 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { apiLimiter, authLimiter } from './common/middleware/rate-limit.middleware';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 async function bootstrap() {
+  console.log('🚀 Starting OMNIX AI Backend...');
+  console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
+  console.log('🔑 AWS Region:', process.env.AWS_REGION || 'eu-central-1');
+  console.log('🔐 AWS Credentials configured:', !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY));
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS for frontend integration
@@ -11,6 +20,11 @@ async function bootstrap() {
     origin: ['http://localhost:3000', 'https://omnix-ai.com'],
     credentials: true,
   });
+
+  // Apply rate limiting
+  app.use('/v1/', apiLimiter);
+  app.use('/v1/auth/login', authLimiter);
+  app.use('/v1/auth/refresh', authLimiter);
 
   // Global validation pipe
   app.useGlobalPipes(

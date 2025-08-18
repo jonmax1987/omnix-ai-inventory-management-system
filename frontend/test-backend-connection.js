@@ -9,7 +9,7 @@
  * 2. Run: node test-backend-connection.js
  */
 
-const API_BASE_URL = 'https://8r85mpuvt3.execute-api.eu-central-1.amazonaws.com/dev';
+const API_BASE_URL = 'https://18sz01wxsi.execute-api.eu-central-1.amazonaws.com/dev';
 
 // Color codes for console output
 const colors = {

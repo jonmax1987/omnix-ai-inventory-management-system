@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMNIX AI - Frontend Backend Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .endpoint {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 OMNIX AI - Frontend ↔ Backend Connection Test</h1>
+        <p>This page tests the communication between your frontend and backend services.</p>
+        
+        <div class="info">
+            <strong>API URL:</strong> <span id="api-url"></span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔍 Connection Tests</h2>
+        <div id="test-buttons">
+            <button onclick="testHealthEndpoint()">Test Health Check</button>
+            <button onclick="testProtectedEndpoint()">Test Protected Endpoint</button>
+            <button onclick="testCORS()">Test CORS</button>
+            <button onclick="testAllEndpoints()">Test All Endpoints</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <div class="card">
+        <h2>📊 How It Works</h2>
+        <ul>
+            <li><strong>Environment Variables:</strong> API URL configured in .env files</li>
+            <li><strong>CORS:</strong> Backend configured to accept requests from frontend</li>
+            <li><strong>Authentication:</strong> JWT tokens for protected endpoints</li>
+            <li><strong>Error Handling:</strong> Proper HTTP status codes and error messages</li>
+        </ul>
+    </div>
+
+    <script>
+        const API_URL = 'https://18sz01wxsi.execute-api.eu-central-1.amazonaws.com/dev/v1';
+        document.getElementById('api-url').textContent = API_URL;
+
+        function addResult(title, status, message, data = null) {
+            const results = document.getElementById('results');
+            const statusClass = status === 'success' ? 'success' : 
+                               status === 'error' ? 'error' : 
+                               status === 'warning' ? 'warning' : 'info';
+            
+            const resultHtml = `
+                <div class="status ${statusClass}">
+                    <strong>${title}</strong><br>
+                    ${message}
+                    ${data ? `<details><summary>View Response</summary><pre>${JSON.stringify(data, null, 2)}</pre></details>` : ''}
+                </div>
+            `;
+            
+            results.innerHTML = resultHtml + results.innerHTML;
+        }
+
+        async function testHealthEndpoint() {
+            try {
+                addResult('Health Check', 'info', 'Testing health endpoint...');
+                
+                const response = await fetch(`${API_URL}/system/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('Health Check', 'success', 
+                        `✅ Health endpoint working! Status: ${response.status}`, data);
+                } else {
+                    addResult('Health Check', 'error', 
+                        `❌ Health endpoint failed! Status: ${response.status}`, data);
+                }
+            } catch (error) {
+                addResult('Health Check', 'error', 
+                    `❌ Network error: ${error.message}`);
+            }
+        }
+
+        async function testProtectedEndpoint() {
+            try {
+                addResult('Protected Endpoint', 'info', 'Testing products endpoint (requires auth)...');
+                
+                const response = await fetch(`${API_URL}/products`);
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    addResult('Protected Endpoint', 'warning', 
+                        '🔒 Correctly returned 401 Unauthorized (this is expected!)', data);
+                } else if (response.ok) {
+                    addResult('Protected Endpoint', 'success', 
+                        '✅ Protected endpoint accessible (you might be authenticated)', data);
+                } else {
+                    addResult('Protected Endpoint', 'error', 
+                        `❌ Unexpected status: ${response.status}`, data);
+                }
+            } catch (error) {
+                addResult('Protected Endpoint', 'error', 
+                    `❌ Network error: ${error.message}`);
+            }
+        }
+
+        async function testCORS() {
+            try {
+                addResult('CORS Test', 'info', 'Testing CORS preflight...');
+                
+                const response = await fetch(`${API_URL}/system/health`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+                };
+                
+                if (response.status === 204 || response.status === 200) {
+                    addResult('CORS Test', 'success', 
+                        '✅ CORS configured correctly!', corsHeaders);
+                } else {
+                    addResult('CORS Test', 'warning', 
+                        `⚠️ CORS preflight returned status: ${response.status}`, corsHeaders);
+                }
+            } catch (error) {
+                addResult('CORS Test', 'error', 
+                    `❌ CORS test failed: ${error.message}`);
+            }
+        }
+
+        async function testAllEndpoints() {
+            const endpoints = [
+                { path: '/system/health', name: 'Health Check', requiresAuth: false },
+                { path: '/system/status', name: 'System Status', requiresAuth: false },
+                { path: '/products', name: 'Products', requiresAuth: true },
+                { path: '/dashboard/summary', name: 'Dashboard', requiresAuth: true },
+                { path: '/alerts', name: 'Alerts', requiresAuth: true },
+                { path: '/forecasts', name: 'Forecasts', requiresAuth: true },
+            ];
+
+            addResult('Comprehensive Test', 'info', 'Testing all endpoints...');
+
+            let successCount = 0;
+            let totalCount = endpoints.length;
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_URL}${endpoint.path}`);
+                    const data = await response.json();
+                    
+                    if (endpoint.requiresAuth && response.status === 401) {
+                        successCount++;
+                        addResult(`${endpoint.name}`, 'warning', 
+                            '🔒 Correctly requires authentication');
+                    } else if (!endpoint.requiresAuth && response.ok) {
+                        successCount++;
+                        addResult(`${endpoint.name}`, 'success', 
+                            `✅ Public endpoint working (${response.status})`);
+                    } else {
+                        addResult(`${endpoint.name}`, 'error', 
+                            `❌ Unexpected response (${response.status}): ${data.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    addResult(`${endpoint.name}`, 'error', 
+                        `❌ Network error: ${error.message}`);
+                }
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            addResult('Comprehensive Test', 'success', 
+                `🎉 Test completed! ${successCount}/${totalCount} endpoints behaving correctly`);
+        }
+
+        // Test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('Page Loaded', 'info', 'Ready to test frontend-backend communication!');
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { apiRequest } from './api';
+import { authService } from './auth';
 
 export interface Product {
   id: string;
@@ -99,16 +100,16 @@ export const productsService = {
     if (params?.lowStock !== undefined) searchParams.append('lowStock', params.lowStock.toString());
     
     const queryString = searchParams.toString();
-    return await apiRequest<ProductsResponse>(`/products${queryString ? `?${queryString}` : ''}`);
+    return await authService.authenticatedRequest<ProductsResponse>(`/products${queryString ? `?${queryString}` : ''}`);
   },
 
   async getProduct(productId: string): Promise<Product> {
-    const response = await apiRequest<ProductResponse>(`/products/${productId}`);
+    const response = await authService.authenticatedRequest<ProductResponse>(`/products/${productId}`);
     return response.data;
   },
 
   async createProduct(product: CreateProductRequest): Promise<Product> {
-    const response = await apiRequest<ProductResponse>('/products', {
+    const response = await authService.authenticatedRequest<ProductResponse>('/products', {
       method: 'POST',
       body: JSON.stringify(product),
     });
@@ -116,7 +117,7 @@ export const productsService = {
   },
 
   async updateProduct(productId: string, updates: UpdateProductRequest): Promise<Product> {
-    const response = await apiRequest<ProductResponse>(`/products/${productId}`, {
+    const response = await authService.authenticatedRequest<ProductResponse>(`/products/${productId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
@@ -124,7 +125,7 @@ export const productsService = {
   },
 
   async deleteProduct(productId: string): Promise<void> {
-    await apiRequest(`/products/${productId}`, {
+    await authService.authenticatedRequest(`/products/${productId}`, {
       method: 'DELETE',
     });
   },

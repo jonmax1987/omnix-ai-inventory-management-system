@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -242,6 +243,79 @@ export class ProductsController {
     type: ErrorDto,
   })
   async updateProduct(
+    @Param('productId') productId: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    try {
+      const product = await this.productsService.update(productId, updateProductDto);
+      if (!product) {
+        throw new HttpException(
+          {
+            error: 'Not Found',
+            message: 'Product not found',
+            code: HttpStatus.NOT_FOUND,
+            timestamp: new Date().toISOString(),
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return {
+        data: product,
+        message: 'Product updated successfully',
+      };
+    } catch (error) {
+      if (error.status === HttpStatus.NOT_FOUND) {
+        throw error;
+      }
+      throw new HttpException(
+        {
+          error: 'Internal Server Error',
+          message: 'Failed to update product',
+          details: error.message,
+          code: HttpStatus.INTERNAL_SERVER_ERROR,
+          timestamp: new Date().toISOString(),
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch(':productId')
+  @ApiOperation({
+    summary: 'Partially update product',
+    description: "Partially update an existing product's information",
+  })
+  @ApiParam({
+    name: 'productId',
+    description: 'Product unique identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product updated successfully',
+    type: SuccessResponseDto<ProductDto>,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid input parameters',
+    type: ErrorDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Authentication required',
+    type: ErrorDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Not Found - Product not found',
+    type: ErrorDto,
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal Server Error',
+    type: ErrorDto,
+  })
+  async patchProduct(
     @Param('productId') productId: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
