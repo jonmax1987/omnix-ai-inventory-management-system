@@ -13,6 +13,10 @@ import {
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { AIAnalysisService } from './ai-analysis.service';
+import { CostAnalyticsService } from '../services/cost-analytics.service';
+import { BatchProcessingService } from '../services/batch-processing.service';
+import { CostAnalytics, TopCustomerCost } from '../interfaces/cost-analytics.interface';
+import { BatchStatusResponse, QueueStats, BatchRequest } from '../interfaces/batch-processing.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
 import {
@@ -31,6 +35,8 @@ export class CustomersController {
   constructor(
     private readonly customersService: CustomersService,
     private readonly aiAnalysisService: AIAnalysisService,
+    private readonly costAnalyticsService: CostAnalyticsService,
+    private readonly batchProcessingService: BatchProcessingService,
   ) {}
 
   @Post('register')
@@ -187,5 +193,52 @@ export class CustomersController {
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     return this.aiAnalysisService.getCustomerAnalysisHistory(customerId, limitNum);
+  }
+
+  // Cost Analytics Endpoints
+  @Get(':id/cost-analytics')
+  async getCustomerCostAnalytics(
+    @Param('id') customerId: string,
+    @Query('days') days?: string,
+  ): Promise<CostAnalytics> {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.costAnalyticsService.getCustomerCostAnalytics(customerId, daysNum);
+  }
+
+  @Get('cost-analytics/overview')
+  async getCostOverview(
+    @Query('timeRange') timeRange: 'hour' | 'day' | 'week' | 'month' = 'day',
+  ): Promise<CostAnalytics> {
+    return this.costAnalyticsService.getCostAnalytics(timeRange);
+  }
+
+  @Get('cost-analytics/top-customers')
+  async getTopCustomersByCost(
+    @Query('limit') limit?: string,
+    @Query('days') days?: string,
+  ): Promise<TopCustomerCost[]> {
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.costAnalyticsService.getTopCustomersByCost(limitNum, daysNum);
+  }
+
+  // Batch Processing Endpoints
+  @Post('batch-analysis')
+  async submitBatchAnalysis(@Body() batchRequest: BatchRequest): Promise<{
+    batchId: string;
+    jobCount: number;
+    estimatedCost: number;
+  }> {
+    return this.batchProcessingService.submitBatchRequest(batchRequest);
+  }
+
+  @Get('batch-analysis/:batchId')
+  async getBatchStatus(@Param('batchId') batchId: string): Promise<BatchStatusResponse> {
+    return this.batchProcessingService.getBatchStatus(batchId);
+  }
+
+  @Get('batch-analysis/queue/stats')
+  async getQueueStats(): Promise<QueueStats> {
+    return this.batchProcessingService.getQueueStats();
   }
 }

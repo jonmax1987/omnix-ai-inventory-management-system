@@ -72,4 +72,5 @@ export interface BedrockAnalysisResponse {
   error?: string;
   tokensUsed?: number;
   processingTime?: number;
+  cached?: boolean;
 }

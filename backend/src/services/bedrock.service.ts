@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { MonitoringService } from './monitoring.service';
+import { CostAnalyticsService } from './cost-analytics.service';
+import { CacheService } from './cache.service';
 import {
   Purchase,
   AIAnalysisResult,
@@ -14,8 +17,14 @@ export class BedrockAnalysisService {
   private bedrock: BedrockRuntimeClient;
   private readonly modelId: string;
   private readonly region: string;
+  private readonly monitoring: MonitoringService;
+  private readonly costAnalytics: CostAnalyticsService;
+  private readonly cache: CacheService;
 
   constructor() {
+    this.monitoring = new MonitoringService();
+    this.costAnalytics = new CostAnalyticsService();
+    this.cache = new CacheService();
     this.region = process.env.AWS_BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1';
     this.modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
 
@@ -42,11 +51,48 @@ export class BedrockAnalysisService {
 
   async analyzeCustomer(request: BedrockAnalysisRequest): Promise<BedrockAnalysisResponse> {
     const startTime = Date.now();
+    let usedFallback = false;
+    let success = true;
+    let usedCache = false;
     
     try {
+      // Check cache first for significant cost savings
+      const cachedResult = await this.cache.getCachedResult(request);
+      if (cachedResult) {
+        usedCache = true;
+        const processingTime = Date.now() - startTime;
+        
+        console.log(`🎯 Using cached result for customer ${request.customerId} (${request.analysisType})`);
+        
+        // Record cache hit metrics
+        await this.recordAnalysisMetrics(request, processingTime, true, false, cachedResult.confidence);
+        
+        // No cost for cached results
+        await this.costAnalytics.recordBedrockCall({
+          customerId: request.customerId,
+          analysisType: request.analysisType,
+          modelId: this.modelId,
+          inputTokens: 0, // No API call made
+          outputTokens: 0,
+          processingTimeMs: processingTime,
+          success: true,
+          usedFallback: false,
+        });
+        
+        return {
+          success: true,
+          data: cachedResult,
+          processingTime,
+          cached: true,
+        };
+      }
+
       // Check if AI analysis is enabled
       if (!this.isAIAnalysisEnabled()) {
-        return this.getFallbackResponse(request, 'AI analysis is disabled');
+        usedFallback = true;
+        const fallbackResponse = this.getFallbackResponse(request, 'AI analysis is disabled');
+        await this.recordAnalysisMetrics(request, Date.now() - startTime, false, true, fallbackResponse.data.confidence);
+        return fallbackResponse;
       }
 
       console.log(`🔍 Starting AI analysis for customer ${request.customerId}`);
@@ -54,19 +100,46 @@ export class BedrockAnalysisService {
 
       // Validate input data
       if (request.purchases.length === 0) {
-        return this.getFallbackResponse(request, 'No purchase history available');
+        usedFallback = true;
+        const fallbackResponse = this.getFallbackResponse(request, 'No purchase history available');
+        await this.recordAnalysisMetrics(request, Date.now() - startTime, false, true, fallbackResponse.data.confidence);
+        return fallbackResponse;
       }
 
       // Build analysis prompt based on request type
       const prompt = this.buildAnalysisPrompt(request);
       
+      // Estimate input tokens for cost tracking
+      const inputTokens = this.estimateTokens(prompt);
+      
       // Call Bedrock with retry logic
       const response = await this.invokeBedrockModelWithRetry(prompt, 2);
+      
+      // Estimate output tokens from response
+      const outputTokens = this.estimateTokens(response);
       
       // Parse and validate response
       const analysisResult = this.parseBedrockResponse(response, request.customerId);
       
       const processingTime = Date.now() - startTime;
+      
+      // Record comprehensive analytics for successful analysis
+      await this.recordAnalysisMetrics(request, processingTime, true, false, analysisResult.confidence);
+      
+      // Record detailed cost analytics
+      await this.costAnalytics.recordBedrockCall({
+        customerId: request.customerId,
+        analysisType: request.analysisType,
+        modelId: this.modelId,
+        inputTokens,
+        outputTokens,
+        processingTimeMs: processingTime,
+        success: true,
+        usedFallback: false,
+      });
+      
+      // Cache the successful result for future requests
+      await this.cache.setCachedResult(request, analysisResult);
       
       console.log(`✅ AI analysis completed in ${processingTime}ms`);
       
@@ -74,18 +147,38 @@ export class BedrockAnalysisService {
         success: true,
         data: analysisResult,
         processingTime,
+        cached: false,
       };
     } catch (error) {
       console.error('❌ Bedrock analysis failed:', error);
       
+      success = false;
+      usedFallback = true;
+      
       // Return fallback analysis instead of complete failure
       const fallbackResult = this.generateFallbackAnalysis(request);
+      const processingTime = Date.now() - startTime;
+      
+      // Record failed analysis metrics
+      await this.recordAnalysisMetrics(request, processingTime, false, true, fallbackResult.confidence);
+      
+      // Record cost analytics for failed attempt (no tokens used since fallback)
+      await this.costAnalytics.recordBedrockCall({
+        customerId: request.customerId,
+        analysisType: request.analysisType,
+        modelId: this.modelId,
+        inputTokens: 0, // No API call made
+        outputTokens: 0,
+        processingTimeMs: processingTime,
+        success: false,
+        usedFallback: true,
+      });
       
       return {
         success: false,
         data: fallbackResult,
         error: this.sanitizeErrorMessage(error.message),
-        processingTime: Date.now() - startTime,
+        processingTime,
       };
     }
   }
@@ -566,5 +659,54 @@ ${userPrompt}`;
       .replace(/secret[_\s]*access[_\s]*key/gi, '[SECRET_KEY]')
       .replace(/token/gi, '[TOKEN]')
       .replace(/arn:aws:[^:]*:[^:]*:[^:]*:[^\s]*/g, '[AWS_ARN]');
+  }
+
+  /**
+   * Record analysis metrics for monitoring and alerting
+   */
+  private async recordAnalysisMetrics(
+    request: BedrockAnalysisRequest, 
+    processingTime: number, 
+    success: boolean, 
+    usedFallback: boolean, 
+    confidence: number
+  ): Promise<void> {
+    try {
+      await this.monitoring.recordAIAnalysisMetrics({
+        analysisType: request.analysisType,
+        processingTime,
+        success,
+        usedFallback,
+        confidence,
+        customerId: request.customerId,
+      });
+    } catch (error) {
+      console.error('❌ Failed to record analysis metrics:', error);
+      // Don't throw - monitoring should not break main functionality
+    }
+  }
+
+  /**
+   * Estimate token count for cost tracking (rough approximation)
+   */
+  private estimateTokens(text: string): number {
+    // Rough estimation: ~4 characters per token for English text
+    // This is approximate - actual tokenization varies by model
+    return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Record customer engagement metrics for business intelligence
+   */
+  async recordCustomerEngagement(customerId: string, recommendationCount: number, accuracy?: number): Promise<void> {
+    try {
+      await this.monitoring.recordCustomerEngagement({
+        customerId,
+        recommendationCount,
+        predictionAccuracy: accuracy,
+      });
+    } catch (error) {
+      console.error('❌ Failed to record customer engagement metrics:', error);
+    }
   }
 }
