@@ -32,7 +32,9 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.4.20",
     "@nestjs/swagger": "^7.3.0",
+    "@nestjs/websockets": "^10.4.20",
     "@types/aws-lambda": "^8.10.152",
     "@types/bcryptjs": "^2.4.6",
     "@types/express-rate-limit": "^5.1.3",
@@ -48,7 +50,9 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "uuid": "^9.0.1"
+    "socket.io": "^4.8.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

@@ -5,13 +5,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InventoryService = void 0;
 const common_1 = require("@nestjs/common");
 const inventory_dto_1 = require("../common/dto/inventory.dto");
+const websocket_service_1 = require("../websocket/websocket.service");
 const uuid_1 = require("uuid");
 let InventoryService = class InventoryService {
-    constructor() {
+    constructor(webSocketService) {
+        this.webSocketService = webSocketService;
         this.inventoryHistory = [];
         this.mockProducts = [
             {
@@ -185,6 +190,7 @@ let InventoryService = class InventoryService {
             adjustedAt: new Date().toISOString(),
         };
         this.inventoryHistory.push(historyEntry);
+        this.webSocketService.emitStockChanged(productId, product.name, newQuantity, product.minThreshold);
         return this.getProductInventory(productId);
     }
     async getInventoryHistory(productId, limit = 50) {
@@ -206,6 +212,7 @@ let InventoryService = class InventoryService {
 };
 exports.InventoryService = InventoryService;
 exports.InventoryService = InventoryService = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [websocket_service_1.WebSocketService])
 ], InventoryService);
 //# sourceMappingURL=inventory.service.js.map

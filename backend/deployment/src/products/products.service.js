@@ -13,9 +13,11 @@ exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const uuid_1 = require("uuid");
 const dynamodb_service_1 = require("../services/dynamodb.service");
+const websocket_service_1 = require("../websocket/websocket.service");
 let ProductsService = class ProductsService {
-    constructor(dynamoDBService) {
+    constructor(dynamoDBService, webSocketService) {
         this.dynamoDBService = dynamoDBService;
+        this.webSocketService = webSocketService;
         this.tableName = 'products';
     }
     async findAll(query) {
@@ -121,6 +123,7 @@ let ProductsService = class ProductsService {
             console.log('💾 Product data:', JSON.stringify(newProduct, null, 2));
             await this.dynamoDBService.put(this.tableName, newProduct);
             console.log('✅ Product successfully created with ID:', newProduct.id);
+            this.webSocketService.emitProductUpdate(newProduct.id, newProduct);
             return newProduct;
         }
         catch (error) {
@@ -142,6 +145,10 @@ let ProductsService = class ProductsService {
                 lastUpdated: now,
             };
             const updatedProduct = await this.dynamoDBService.update(this.tableName, { id }, updates);
+            this.webSocketService.emitProductUpdate(id, updatedProduct);
+            if (updateProductDto.quantity !== undefined && updateProductDto.quantity !== existingProduct.quantity) {
+                this.webSocketService.emitStockChanged(id, updatedProduct.name, updatedProduct.quantity, updatedProduct.minThreshold || 0);
+            }
             return updatedProduct;
         }
         catch (error) {
@@ -151,7 +158,11 @@ let ProductsService = class ProductsService {
     }
     async remove(id) {
         try {
-            return await this.dynamoDBService.delete(this.tableName, { id });
+            const result = await this.dynamoDBService.delete(this.tableName, { id });
+            if (result) {
+                this.webSocketService.emitProductDeleted(id);
+            }
+            return result;
         }
         catch (error) {
             console.error('Error deleting product:', error);
@@ -225,6 +236,7 @@ let ProductsService = class ProductsService {
 exports.ProductsService = ProductsService;
 exports.ProductsService = ProductsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [dynamodb_service_1.DynamoDBService])
+    __metadata("design:paramtypes", [dynamodb_service_1.DynamoDBService,
+        websocket_service_1.WebSocketService])
 ], ProductsService);
 //# sourceMappingURL=products.service.js.map

@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { HealthCheck, SystemStatus, SystemMetrics } from '../common/dto/system.dto';
+import { WebSocketService } from '../websocket/websocket.service';
 import * as os from 'os';
 import * as process from 'process';
 
 @Injectable()
 export class SystemService {
+  constructor(private readonly webSocketService: WebSocketService) {}
+  
   private startTime = Date.now();
   private requestCount = 0;
   private totalResponseTime = 0;
@@ -171,5 +174,13 @@ export class SystemService {
 
   incrementErrorCount(): void {
     this.errorCount++;
+  }
+
+  async announceSystemMaintenance(maintenanceData: { message: string; startTime: string; endTime?: string; affectedServices?: string[] }): Promise<void> {
+    // Emit WebSocket event for system maintenance
+    this.webSocketService.emitSystemMaintenance({
+      ...maintenanceData,
+      timestamp: new Date().toISOString(),
+    });
   }
 }

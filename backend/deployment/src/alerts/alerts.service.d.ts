@@ -1,3 +1,4 @@
+import { WebSocketService } from '../websocket/websocket.service';
 export interface Alert {
     id: string;
     type: 'low-stock' | 'out-of-stock' | 'expired' | 'forecast-warning' | 'system';
@@ -13,10 +14,13 @@ export interface Alert {
     dismissedBy?: string;
 }
 export declare class AlertsService {
+    private readonly webSocketService;
+    constructor(webSocketService: WebSocketService);
     private alerts;
     findAll(type?: string, severity?: string, limit?: number): Promise<{
         data: Alert[];
         count: number;
     }>;
     dismissAlert(id: string): Promise<boolean>;
+    createAlert(alertData: Omit<Alert, 'id' | 'createdAt'>): Promise<Alert>;
 }

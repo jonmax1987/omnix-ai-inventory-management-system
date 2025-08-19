@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { WebSocketService } from '../websocket/websocket.service';
 
 export interface Alert {
   id: string;
@@ -17,6 +18,8 @@ export interface Alert {
 
 @Injectable()
 export class AlertsService {
+  constructor(private readonly webSocketService: WebSocketService) {}
+  
   private alerts: Alert[] = [
     {
       id: 'alert-001',
@@ -88,8 +91,30 @@ export class AlertsService {
       dismissedBy: 'user', // In production, this would be the authenticated user
     };
 
+    // Emit WebSocket event for alert dismissal
+    this.webSocketService.emitAlertUpdate(id, {
+      dismissed: true,
+      dismissedAt: this.alerts[alertIndex].dismissedAt,
+      dismissedBy: this.alerts[alertIndex].dismissedBy,
+    });
+    
     // Remove dismissed alert from active list
     this.alerts.splice(alertIndex, 1);
     return true;
+  }
+
+  async createAlert(alertData: Omit<Alert, 'id' | 'createdAt'>): Promise<Alert> {
+    const newAlert: Alert = {
+      ...alertData,
+      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.alerts.unshift(newAlert);
+
+    // Emit WebSocket event for new alert
+    this.webSocketService.emitNewAlert(newAlert);
+
+    return newAlert;
   }
 }

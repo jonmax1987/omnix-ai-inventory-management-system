@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const alerts_controller_1 = require("./alerts.controller");
 const alerts_service_1 = require("./alerts.service");
 const products_module_1 = require("../products/products.module");
+const websocket_module_1 = require("../websocket/websocket.module");
 let AlertsModule = class AlertsModule {
 };
 exports.AlertsModule = AlertsModule;
 exports.AlertsModule = AlertsModule = __decorate([
     (0, common_1.Module)({
-        imports: [products_module_1.ProductsModule],
+        imports: [products_module_1.ProductsModule, websocket_module_1.WebSocketModule],
         controllers: [alerts_controller_1.AlertsController],
         providers: [alerts_service_1.AlertsService],
         exports: [alerts_service_1.AlertsService],

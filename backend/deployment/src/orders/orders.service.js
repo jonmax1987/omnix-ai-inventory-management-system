@@ -12,9 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const order_dto_1 = require("../common/dto/order.dto");
+const websocket_service_1 = require("../websocket/websocket.service");
+const customers_service_1 = require("../customers/customers.service");
 const uuid_1 = require("uuid");
 let OrdersService = class OrdersService {
-    constructor() {
+    constructor(webSocketService, customersService) {
+        this.webSocketService = webSocketService;
+        this.customersService = customersService;
         this.orders = [];
         this.orderCounter = 1000;
         this.mockProducts = [
@@ -155,6 +159,7 @@ let OrdersService = class OrdersService {
             notes: createOrderDto.notes,
         };
         this.orders.push(newOrder);
+        this.webSocketService.emitNewOrder(newOrder);
         return newOrder;
     }
     async updateOrder(orderId, updateOrderDto, userId) {
@@ -163,6 +168,7 @@ let OrdersService = class OrdersService {
             return null;
         }
         const order = this.orders[orderIndex];
+        const previousStatus = order.status;
         if (updateOrderDto.status) {
             if (updateOrderDto.status === order_dto_1.OrderStatus.APPROVED && order.status === order_dto_1.OrderStatus.PENDING) {
                 order.approvedBy = userId;
@@ -170,6 +176,11 @@ let OrdersService = class OrdersService {
             }
             if (updateOrderDto.status === order_dto_1.OrderStatus.RECEIVED && order.status !== order_dto_1.OrderStatus.RECEIVED) {
                 order.actualDeliveryDate = new Date().toISOString();
+                if (order.createdBy) {
+                    this.trackPurchaseHistory(order).catch(error => {
+                        console.error('Error tracking purchase history:', error);
+                    });
+                }
             }
             order.status = updateOrderDto.status;
         }
@@ -187,6 +198,9 @@ let OrdersService = class OrdersService {
         }
         order.updatedAt = new Date().toISOString();
         this.orders[orderIndex] = order;
+        if (updateOrderDto.status && updateOrderDto.status !== previousStatus) {
+            this.webSocketService.emitOrderStatusChanged(orderId, updateOrderDto.status, previousStatus);
+        }
         return order;
     }
     async deleteOrder(orderId) {
@@ -230,10 +244,46 @@ let OrdersService = class OrdersService {
             recentOrders,
         };
     }
+    async trackPurchaseHistory(order) {
+        try {
+            let customerProfile;
+            try {
+                customerProfile = await this.customersService.getCustomerProfile(order.createdBy);
+            }
+            catch (error) {
+                customerProfile = await this.customersService.createCustomerProfile({
+                    customerId: order.createdBy,
+                });
+            }
+            for (const item of order.items) {
+                await this.customersService.addPurchaseHistory(order.createdBy, {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: item.totalPrice,
+                    storeLocation: order.supplier,
+                    promotionUsed: false,
+                });
+                await this.customersService.trackProductInteraction(order.createdBy, {
+                    productId: item.productId,
+                    interactionType: 'add_to_cart',
+                    metadata: {
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                        quantity: item.quantity,
+                    },
+                });
+            }
+        }
+        catch (error) {
+            console.error('Failed to track purchase history for order:', order.id, error);
+        }
+    }
 };
 exports.OrdersService = OrdersService;
 exports.OrdersService = OrdersService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [websocket_service_1.WebSocketService,
+        customers_service_1.CustomersService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

@@ -10,11 +10,13 @@ exports.SystemModule = void 0;
 const common_1 = require("@nestjs/common");
 const system_controller_1 = require("./system.controller");
 const system_service_1 = require("./system.service");
+const websocket_module_1 = require("../websocket/websocket.module");
 let SystemModule = class SystemModule {
 };
 exports.SystemModule = SystemModule;
 exports.SystemModule = SystemModule = __decorate([
     (0, common_1.Module)({
+        imports: [websocket_module_1.WebSocketModule],
         controllers: [system_controller_1.SystemController],
         providers: [system_service_1.SystemService],
         exports: [system_service_1.SystemService],

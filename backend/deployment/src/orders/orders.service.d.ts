@@ -1,9 +1,13 @@
 import { CreateOrderDto, UpdateOrderDto, Order, OrderStatus, OrderPriority, OrderSummary } from '../common/dto/order.dto';
+import { WebSocketService } from '../websocket/websocket.service';
+import { CustomersService } from '../customers/customers.service';
 export declare class OrdersService {
+    private readonly webSocketService;
+    private readonly customersService;
     private orders;
     private orderCounter;
     private mockProducts;
-    constructor();
+    constructor(webSocketService: WebSocketService, customersService: CustomersService);
     private initializeMockOrders;
     getAllOrders(status?: OrderStatus, priority?: OrderPriority, supplier?: string, page?: number, limit?: number): Promise<{
         orders: Order[];
@@ -15,4 +19,5 @@ export declare class OrdersService {
     updateOrder(orderId: string, updateOrderDto: UpdateOrderDto, userId: string): Promise<Order | null>;
     deleteOrder(orderId: string): Promise<boolean>;
     getOrderSummary(): Promise<OrderSummary>;
+    private trackPurchaseHistory;
 }

@@ -1,5 +1,8 @@
 import { HealthCheck, SystemStatus, SystemMetrics } from '../common/dto/system.dto';
+import { WebSocketService } from '../websocket/websocket.service';
 export declare class SystemService {
+    private readonly webSocketService;
+    constructor(webSocketService: WebSocketService);
     private startTime;
     private requestCount;
     private totalResponseTime;
@@ -11,4 +14,10 @@ export declare class SystemService {
     incrementRequestCount(): void;
     addResponseTime(time: number): void;
     incrementErrorCount(): void;
+    announceSystemMaintenance(maintenanceData: {
+        message: string;
+        startTime: string;
+        endTime?: string;
+        affectedServices?: string[];
+    }): Promise<void>;
 }

@@ -5,11 +5,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecommendationsService = void 0;
 const common_1 = require("@nestjs/common");
+const ml_service_1 = require("../ml/ml.service");
 let RecommendationsService = class RecommendationsService {
-    constructor() {
+    constructor(mlService) {
+        this.mlService = mlService;
         this.mockRecommendations = [
             {
                 id: 'rec_1',
@@ -157,9 +162,43 @@ let RecommendationsService = class RecommendationsService {
             recommendationId,
         };
     }
+    async getCustomerRecommendations(customerId, context = 'homepage', limit = 10) {
+        return this.mlService.getPersonalizedRecommendations({
+            customerId,
+            context,
+            limit,
+        });
+    }
+    async getSimilarProducts(productId, limit = 5) {
+        return this.mlService.getSimilarProducts(productId, limit);
+    }
+    async getTrendingProducts(limit = 10) {
+        return this.mlService.getTrendingProducts(limit);
+    }
+    async getSeasonalRecommendations(season = 'current', limit = 10) {
+        const currentSeason = season === 'current' ? this.getCurrentSeason() : season;
+        return this.mlService.getSeasonalRecommendations(currentSeason, limit);
+    }
+    async getComplementaryProducts(productIds, limit = 5) {
+        return this.mlService.getComplementaryProducts(productIds, limit);
+    }
+    async trackRecommendationFeedback(customerId, productId, action) {
+        return this.mlService.trackRecommendationFeedback(customerId, productId, action);
+    }
+    getCurrentSeason() {
+        const month = new Date().getMonth() + 1;
+        if (month >= 3 && month <= 5)
+            return 'spring';
+        if (month >= 6 && month <= 8)
+            return 'summer';
+        if (month >= 9 && month <= 11)
+            return 'autumn';
+        return 'winter';
+    }
 };
 exports.RecommendationsService = RecommendationsService;
 exports.RecommendationsService = RecommendationsService = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [ml_service_1.MlService])
 ], RecommendationsService);
 //# sourceMappingURL=recommendations.service.js.map

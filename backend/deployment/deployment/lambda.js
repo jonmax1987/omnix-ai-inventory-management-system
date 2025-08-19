@@ -24,6 +24,9 @@ async function createServer() {
             app.enableCors({
                 origin: [
                     'http://localhost:3000',
+                    'http://localhost:5173',
+                    'http://omnix-ai-frontend-animations-1754933694.s3-website.eu-central-1.amazonaws.com',
+                    'https://d1vu6p9f5uc16.cloudfront.net',
                     'https://omnix-ai.com',
                     'https://www.omnix-ai.com',
                     'https://app.omnix-ai.com',

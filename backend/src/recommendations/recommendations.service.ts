@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { MlService } from '../ml/ml.service';
 
 @Injectable()
 export class RecommendationsService {
+  constructor(private readonly mlService: MlService) {}
   private mockRecommendations = [
     {
       id: 'rec_1',
@@ -168,5 +170,51 @@ export class RecommendationsService {
       message: 'Recommendation dismissed',
       recommendationId,
     };
+  }
+
+  // Customer product recommendation methods
+  async getCustomerRecommendations(
+    customerId: string,
+    context: 'homepage' | 'product_page' | 'checkout' | 'email' = 'homepage',
+    limit: number = 10,
+  ) {
+    return this.mlService.getPersonalizedRecommendations({
+      customerId,
+      context,
+      limit,
+    });
+  }
+
+  async getSimilarProducts(productId: string, limit: number = 5) {
+    return this.mlService.getSimilarProducts(productId, limit);
+  }
+
+  async getTrendingProducts(limit: number = 10) {
+    return this.mlService.getTrendingProducts(limit);
+  }
+
+  async getSeasonalRecommendations(season: string = 'current', limit: number = 10) {
+    const currentSeason = season === 'current' ? this.getCurrentSeason() : season;
+    return this.mlService.getSeasonalRecommendations(currentSeason, limit);
+  }
+
+  async getComplementaryProducts(productIds: string[], limit: number = 5) {
+    return this.mlService.getComplementaryProducts(productIds, limit);
+  }
+
+  async trackRecommendationFeedback(
+    customerId: string,
+    productId: string,
+    action: 'click' | 'purchase' | 'dismiss',
+  ) {
+    return this.mlService.trackRecommendationFeedback(customerId, productId, action);
+  }
+
+  private getCurrentSeason(): string {
+    const month = new Date().getMonth() + 1;
+    if (month >= 3 && month <= 5) return 'spring';
+    if (month >= 6 && month <= 8) return 'summer';
+    if (month >= 9 && month <= 11) return 'autumn';
+    return 'winter';
   }
 }

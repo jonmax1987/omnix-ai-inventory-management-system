@@ -1,13 +1,15 @@
-# OMNIX AI - Lite Development Context
+# OMNIX AI - Customer Analytics Development Context
 
 ## Core Principles
-- AWS Serverless microservices with Node.js/Nest.js and Python.
+- AWS Serverless microservices with Node.js/Nest.js and AI-powered analytics.
 - API-First using OpenAPI.
 - Mobile First, Atomic Design, WCAG + ARIA.
+- AI-driven customer insights and consumption prediction.
 
 ## Tech Stack
 - Frontend: Next.js, Styled Components, Zustand/Context.
-- Backend: Node.js + Nest.js Lambdas, DynamoDB, Python AI Lambda, API Gateway, SQS.
+- Backend: Node.js + Nest.js Lambdas, DynamoDB, AWS Bedrock (Claude), API Gateway, SQS.
+- AI Layer: AWS Bedrock for customer analysis, consumption prediction, and behavioral insights.
 
 ## Coding Rules
 - Follow architecture + API-First.
@@ -15,33 +17,54 @@
 - Clean, modular code.
 - Accessibility mandatory.
 - Update OpenAPI on API changes.
+- Privacy-first approach for customer data.
+- Document AI decisions in DECISIONS_LOG.md.
+
+## AI Development Focus
+- Customer consumption pattern prediction using AWS Bedrock
+- Analyze purchase history to predict needs (e.g., "buys milk every 5 days")
+- Socioeconomic profiling from shopping behavior
+- Real-time personalization based on AI insights
 
 ## Quick Checklist
 - Match architecture & coding style.
 - Update API docs if needed.
 - Accessibility included.
 - Optimize performance.
+- Document AI prompts and model decisions.
+- Test AI predictions for accuracy.
 
 ---
 
 ## Task Management Instructions
 
-Claude is responsible for managing project tasks dynamically during the development process.
+Claude manages AI customer analytics development with professional workflow practices.
 
-- At the start of every new conversation or after a `/clear` command, load the lite project context from CLAUDE_LITE.md, including this Task Management Instructions section.
-- Also load the current task status list from `task_status.md`, which contains User Stories and Tasks with their statuses.
-- For each development session:
-  - Review the current task list and their statuses.
-  - Break down large User Stories into smaller actionable tasks if needed.
-  - Update task statuses in real time to reflect progress: "Not started", "In progress", "Completed".
-  - Suggest next tasks based on priority and dependencies.
-- At the end of the session:
-  - Provide a concise summary of completed and pending tasks.
-  - Update the `task_status.md` content with latest statuses and changes.
-- When switching context or module:
-  - Clear context, load only the relevant module context and related tasks.
-- Keep task management concise to reduce token usage.
-- Treat task management as integral for smooth tracking and context continuity across sessions.
+**Context Loading Protocol:**
+- Primary context: CLAUDE.md (this file) + docs/CURRENT_SPRINT.md
+- Module context: context/customer-ai/ files for AI-specific work
+- Session context: context/sessions/ for handoff continuity
+- Design reference: AI_CUSTOMER_ANALYTICS_SYSTEM_DESIGN.md
+
+**Development Focus Areas:**
+- Phase 1: ✅ Complete (Database, Customer Profiles, Basic ML)
+- Phase 2: 🚀 Current (AWS Bedrock Integration, AI Analysis)
+- Phase 3: 📋 Planned (Advanced Personalization, Performance)
+- Phase 4: 📋 Future (Scale & Advanced Features)
+
+**AI Implementation Priority:**
+1. AWS Bedrock service integration
+2. Customer purchase pattern analysis
+3. Consumption prediction algorithms
+4. Real-time AI recommendations
+5. Performance optimization
+
+**Session Management:**
+- 45-60 minute focused sessions on single AI feature
+- Update task_status.md and context files in real-time
+- Document AI decisions in docs/DECISIONS_LOG.md
+- End with handoff notes for next session
+- Test AI accuracy before marking tasks complete
 
 ---
 

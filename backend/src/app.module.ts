@@ -10,6 +10,8 @@ import { ForecastsModule } from './forecasts/forecasts.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { SystemModule } from './system/system.module';
 import { OrdersModule } from './orders/orders.module';
+import { WebSocketModule } from './websocket/websocket.module';
+import { CustomersModule } from './customers/customers.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -24,6 +26,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     InventoryModule,
     SystemModule,
     OrdersModule,
+    WebSocketModule,
+    CustomersModule,
   ],
   providers: [
     {

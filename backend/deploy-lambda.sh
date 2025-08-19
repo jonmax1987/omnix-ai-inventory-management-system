@@ -1,6 +1,14 @@
 #!/bin/bash
 
 echo "🚀 Starting AWS Lambda Deployment Process..."
+echo "🤖 Including AI Analysis & Bedrock Support"
+
+# Check for Bedrock dependencies
+echo "🔍 Checking AI dependencies..."
+if ! npm list @aws-sdk/client-bedrock-runtime &> /dev/null; then
+    echo "❌ Bedrock SDK not found! Installing..."
+    npm install @aws-sdk/client-bedrock-runtime
+fi
 
 # Step 1: Build the application
 echo "📦 Building NestJS application..."
@@ -35,15 +43,36 @@ cd ..
 echo "✅ Lambda package created: omnix-ai-backend-lambda.zip"
 echo "📊 Package size: $(du -h omnix-ai-backend-lambda.zip | cut -f1)"
 
-# Step 5: Check if AWS CLI is available
+# Step 5: Verify AI components are included
+echo "🤖 Verifying AI components in package..."
+if [[ -f "deployment/src/services/bedrock.service.js" ]]; then
+    echo "✅ Bedrock service included"
+else
+    echo "❌ Bedrock service missing!"
+fi
+
+if [[ -f "deployment/src/customers/ai-analysis.service.js" ]]; then
+    echo "✅ AI analysis service included"
+else
+    echo "❌ AI analysis service missing!"
+fi
+
+# Step 6: Check if AWS CLI is available
 if command -v aws &> /dev/null; then
     echo "🔧 AWS CLI found. Ready for deployment!"
     echo ""
-    echo "Next steps:"
-    echo "1. Upload omnix-ai-backend-lambda.zip to AWS Lambda"
-    echo "2. Configure API Gateway to point to Lambda function"
-    echo "3. Set up DynamoDB tables"
-    echo "4. Configure environment variables"
+    echo "🤖 AI-Enhanced Deployment Steps:"
+    echo "1. Run: ./setup-bedrock.sh (sets up Bedrock access)"
+    echo "2. Upload omnix-ai-backend-lambda.zip to AWS Lambda"
+    echo "3. Configure API Gateway to point to Lambda function"
+    echo "4. Set up DynamoDB tables"
+    echo "5. Configure environment variables (including Bedrock)"
+    echo "6. Test AI endpoints with: node test-ai-analysis.js"
+    echo ""
+    echo "🔧 Required Environment Variables:"
+    echo "   AWS_BEDROCK_REGION=us-east-1"
+    echo "   BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0"
+    echo "   AI_ANALYSIS_ENABLED=true"
 else
     echo "⚠️  AWS CLI not found. Manual deployment required."
     echo ""

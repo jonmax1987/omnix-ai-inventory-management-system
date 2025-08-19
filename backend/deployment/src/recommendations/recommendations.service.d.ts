@@ -1,4 +1,7 @@
+import { MlService } from '../ml/ml.service';
 export declare class RecommendationsService {
+    private readonly mlService;
+    constructor(mlService: MlService);
     private mockRecommendations;
     getRecommendations(query?: any): Promise<{
         data: ({
@@ -56,4 +59,11 @@ export declare class RecommendationsService {
         message: string;
         recommendationId: string;
     }>;
+    getCustomerRecommendations(customerId: string, context?: 'homepage' | 'product_page' | 'checkout' | 'email', limit?: number): Promise<import("../ml/ml.service").RecommendationResponse>;
+    getSimilarProducts(productId: string, limit?: number): Promise<import("../ml/ml.service").RecommendationResponse>;
+    getTrendingProducts(limit?: number): Promise<any[]>;
+    getSeasonalRecommendations(season?: string, limit?: number): Promise<any[]>;
+    getComplementaryProducts(productIds: string[], limit?: number): Promise<any[]>;
+    trackRecommendationFeedback(customerId: string, productId: string, action: 'click' | 'purchase' | 'dismiss'): Promise<void>;
+    private getCurrentSeason;
 }

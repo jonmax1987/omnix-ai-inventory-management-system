@@ -3,12 +3,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { ProductDto, CreateProductDto, UpdateProductDto } from '@/common/dto/product.dto';
 import { ProductQueryDto, PaginatedResponseDto } from '@/common/dto/common.dto';
 import { DynamoDBService } from '../services/dynamodb.service';
+import { WebSocketService } from '../websocket/websocket.service';
 
 @Injectable()
 export class ProductsService {
   private readonly tableName = 'products';
 
-  constructor(private readonly dynamoDBService: DynamoDBService) {}
+  constructor(
+    private readonly dynamoDBService: DynamoDBService,
+    private readonly webSocketService: WebSocketService,
+  ) {}
 
   async findAll(query: ProductQueryDto): Promise<PaginatedResponseDto<ProductDto>> {
     try {
@@ -149,6 +153,10 @@ export class ProductsService {
       await this.dynamoDBService.put(this.tableName, newProduct);
       
       console.log('✅ Product successfully created with ID:', newProduct.id);
+      
+      // Emit WebSocket event for product creation
+      this.webSocketService.emitProductUpdate(newProduct.id, newProduct);
+      
       return newProduct;
     } catch (error) {
       console.error('❌ Error creating product:', error);
@@ -178,6 +186,19 @@ export class ProductsService {
         updates,
       );
 
+      // Emit WebSocket event for product update
+      this.webSocketService.emitProductUpdate(id, updatedProduct);
+      
+      // Check if stock changed and emit stock change event
+      if (updateProductDto.quantity !== undefined && updateProductDto.quantity !== existingProduct.quantity) {
+        this.webSocketService.emitStockChanged(
+          id,
+          updatedProduct.name,
+          updatedProduct.quantity,
+          updatedProduct.minThreshold || 0
+        );
+      }
+
       return updatedProduct;
     } catch (error) {
       console.error('Error updating product:', error);
@@ -187,7 +208,14 @@ export class ProductsService {
 
   async remove(id: string): Promise<boolean> {
     try {
-      return await this.dynamoDBService.delete(this.tableName, { id });
+      const result = await this.dynamoDBService.delete(this.tableName, { id });
+      
+      if (result) {
+        // Emit WebSocket event for product deletion
+        this.webSocketService.emitProductDeleted(id);
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error deleting product:', error);
       return false;

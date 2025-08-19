@@ -16,6 +16,8 @@ exports.RecommendationsController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const recommendations_service_1 = require("./recommendations.service");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const user_decorator_1 = require("../auth/decorators/user.decorator");
 let RecommendationsController = class RecommendationsController {
     constructor(recommendationsService) {
         this.recommendationsService = recommendationsService;
@@ -28,6 +30,24 @@ let RecommendationsController = class RecommendationsController {
     }
     async dismissRecommendation(recommendationId) {
         return await this.recommendationsService.dismissRecommendation(recommendationId);
+    }
+    async getCustomerRecommendations(customerId, context, limit) {
+        return await this.recommendationsService.getCustomerRecommendations(customerId, context || 'homepage', limit ? parseInt(limit, 10) : 10);
+    }
+    async getSimilarProducts(productId, limit) {
+        return await this.recommendationsService.getSimilarProducts(productId, limit ? parseInt(limit, 10) : 5);
+    }
+    async getTrendingProducts(limit) {
+        return await this.recommendationsService.getTrendingProducts(limit ? parseInt(limit, 10) : 10);
+    }
+    async getSeasonalRecommendations(season, limit) {
+        return await this.recommendationsService.getSeasonalRecommendations(season || 'current', limit ? parseInt(limit, 10) : 10);
+    }
+    async getComplementaryProducts(body) {
+        return await this.recommendationsService.getComplementaryProducts(body.productIds, body.limit || 5);
+    }
+    async trackRecommendationFeedback(user, body) {
+        return await this.recommendationsService.trackRecommendationFeedback(user.id, body.productId, body.action);
     }
 };
 exports.RecommendationsController = RecommendationsController;
@@ -62,6 +82,67 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], RecommendationsController.prototype, "dismissRecommendation", null);
+__decorate([
+    (0, common_1.Get)('customers/:customerId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Get personalized product recommendations for a customer' }),
+    (0, swagger_1.ApiQuery)({ name: 'context', required: false, enum: ['homepage', 'product_page', 'checkout', 'email'] }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number }),
+    __param(0, (0, common_1.Param)('customerId')),
+    __param(1, (0, common_1.Query)('context')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "getCustomerRecommendations", null);
+__decorate([
+    (0, common_1.Get)('products/:productId/similar'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get similar products recommendations' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number }),
+    __param(0, (0, common_1.Param)('productId')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "getSimilarProducts", null);
+__decorate([
+    (0, common_1.Get)('trending'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get trending products' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number }),
+    __param(0, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "getTrendingProducts", null);
+__decorate([
+    (0, common_1.Get)('seasonal'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get seasonal product recommendations' }),
+    (0, swagger_1.ApiQuery)({ name: 'season', required: false, enum: ['spring', 'summer', 'autumn', 'winter', 'current'] }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number }),
+    __param(0, (0, common_1.Query)('season')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "getSeasonalRecommendations", null);
+__decorate([
+    (0, common_1.Post)('complementary'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get complementary product recommendations' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "getComplementaryProducts", null);
+__decorate([
+    (0, common_1.Post)('feedback'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Track user feedback on recommendations' }),
+    __param(0, (0, user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], RecommendationsController.prototype, "trackRecommendationFeedback", null);
 exports.RecommendationsController = RecommendationsController = __decorate([
     (0, swagger_1.ApiTags)('recommendations'),
     (0, common_1.Controller)('recommendations'),

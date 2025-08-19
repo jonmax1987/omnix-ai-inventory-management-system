@@ -12,9 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardService = void 0;
 const common_1 = require("@nestjs/common");
 const products_service_1 = require("../products/products.service");
+const websocket_service_1 = require("../websocket/websocket.service");
 let DashboardService = class DashboardService {
-    constructor(productsService) {
+    constructor(productsService, webSocketService) {
         this.productsService = productsService;
+        this.webSocketService = webSocketService;
     }
     async getSummary(query) {
         const totalInventoryValue = await this.productsService.getTotalInventoryValue();
@@ -32,7 +34,7 @@ let DashboardService = class DashboardService {
         }))
             .sort((a, b) => b.percentage - a.percentage)
             .slice(0, 5);
-        return {
+        const summary = {
             totalInventoryValue: Math.round(totalInventoryValue * 100) / 100,
             totalItems,
             lowStockItems,
@@ -42,6 +44,8 @@ let DashboardService = class DashboardService {
             categoryBreakdown,
             topCategories,
         };
+        this.webSocketService.emitDashboardUpdate(summary);
+        return summary;
     }
     async getInventoryGraphData(query) {
         const dataPoints = this.generateMockTimeSeriesData(query.timeRange, query.granularity, query.category);
@@ -79,6 +83,7 @@ let DashboardService = class DashboardService {
 exports.DashboardService = DashboardService;
 exports.DashboardService = DashboardService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [products_service_1.ProductsService])
+    __metadata("design:paramtypes", [products_service_1.ProductsService,
+        websocket_service_1.WebSocketService])
 ], DashboardService);
 //# sourceMappingURL=dashboard.service.js.map

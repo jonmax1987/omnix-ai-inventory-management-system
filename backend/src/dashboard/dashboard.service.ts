@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ProductsService } from '../products/products.service';
+import { WebSocketService } from '../websocket/websocket.service';
 import {
   DashboardSummaryDto,
   DashboardQueryDto,
@@ -9,7 +10,10 @@ import {
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly webSocketService: WebSocketService,
+  ) {}
 
   async getSummary(query: DashboardQueryDto): Promise<DashboardSummaryDto> {
     const totalInventoryValue = await this.productsService.getTotalInventoryValue();
@@ -35,7 +39,7 @@ export class DashboardService {
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 5);
 
-    return {
+    const summary = {
       totalInventoryValue: Math.round(totalInventoryValue * 100) / 100,
       totalItems,
       lowStockItems,
@@ -45,6 +49,11 @@ export class DashboardService {
       categoryBreakdown,
       topCategories,
     };
+
+    // Emit WebSocket event for dashboard update
+    this.webSocketService.emitDashboardUpdate(summary);
+    
+    return summary;
   }
 
   async getInventoryGraphData(query: InventoryGraphQueryDto): Promise<InventoryGraphDataDto> {

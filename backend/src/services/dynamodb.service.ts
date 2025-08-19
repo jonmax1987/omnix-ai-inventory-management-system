@@ -62,6 +62,18 @@ export class DynamoDBService {
     if (tableName === 'products') {
       return 'omnix-ai-products-dev';
     }
+    if (tableName === 'customer-profiles') {
+      return 'omnix-ai-customer-profiles-dev';
+    }
+    if (tableName === 'purchase-history') {
+      return 'omnix-ai-purchase-history-dev';
+    }
+    if (tableName === 'product-interactions') {
+      return 'omnix-ai-product-interactions-dev';
+    }
+    if (tableName === 'recommendations') {
+      return 'omnix-ai-recommendations-dev';
+    }
     return `${this.tablePrefix}${tableName}`;
   }
 

@@ -8,6 +8,8 @@ import {
   OrderItem,
   OrderSummary 
 } from '../common/dto/order.dto';
+import { WebSocketService } from '../websocket/websocket.service';
+import { CustomersService } from '../customers/customers.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -37,7 +39,10 @@ export class OrdersService {
     },
   ];
 
-  constructor() {
+  constructor(
+    private readonly webSocketService: WebSocketService,
+    private readonly customersService: CustomersService,
+  ) {
     // Initialize with some mock orders
     this.initializeMockOrders();
   }
@@ -186,6 +191,10 @@ export class OrdersService {
     };
 
     this.orders.push(newOrder);
+    
+    // Emit WebSocket event for new order
+    this.webSocketService.emitNewOrder(newOrder);
+    
     return newOrder;
   }
 
@@ -200,6 +209,7 @@ export class OrdersService {
     }
 
     const order = this.orders[orderIndex];
+    const previousStatus = order.status;
     
     // Handle status transitions
     if (updateOrderDto.status) {
@@ -209,9 +219,16 @@ export class OrdersService {
         order.approvedAt = new Date().toISOString();
       }
       
-      // If marking as received, set the actual delivery date
+      // If marking as received, set the actual delivery date and track purchase history
       if (updateOrderDto.status === OrderStatus.RECEIVED && order.status !== OrderStatus.RECEIVED) {
         order.actualDeliveryDate = new Date().toISOString();
+        
+        // Track purchase history for customer if customerId is available
+        if (order.createdBy) {
+          this.trackPurchaseHistory(order).catch(error => {
+            console.error('Error tracking purchase history:', error);
+          });
+        }
       }
 
       order.status = updateOrderDto.status;
@@ -233,6 +250,11 @@ export class OrdersService {
 
     order.updatedAt = new Date().toISOString();
     this.orders[orderIndex] = order;
+
+    // Emit WebSocket event for order status change if status changed
+    if (updateOrderDto.status && updateOrderDto.status !== previousStatus) {
+      this.webSocketService.emitOrderStatusChanged(orderId, updateOrderDto.status, previousStatus);
+    }
 
     return order;
   }
@@ -285,5 +307,45 @@ export class OrdersService {
       ordersByPriority,
       recentOrders,
     };
+  }
+
+  private async trackPurchaseHistory(order: Order): Promise<void> {
+    try {
+      // Create customer profile if it doesn't exist
+      let customerProfile;
+      try {
+        customerProfile = await this.customersService.getCustomerProfile(order.createdBy);
+      } catch (error) {
+        // Create a new profile if not found
+        customerProfile = await this.customersService.createCustomerProfile({
+          customerId: order.createdBy,
+        });
+      }
+
+      // Track each item in the order as a purchase
+      for (const item of order.items) {
+        await this.customersService.addPurchaseHistory(order.createdBy, {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          storeLocation: order.supplier,
+          promotionUsed: false,
+        });
+
+        // Also track as a product interaction (purchase completion)
+        await this.customersService.trackProductInteraction(order.createdBy, {
+          productId: item.productId,
+          interactionType: 'add_to_cart',
+          metadata: {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            quantity: item.quantity,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to track purchase history for order:', order.id, error);
+    }
   }
 }

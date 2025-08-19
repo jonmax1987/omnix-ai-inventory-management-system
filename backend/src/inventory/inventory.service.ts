@@ -6,10 +6,13 @@ import {
   InventoryOverview,
   AdjustmentType
 } from '../common/dto/inventory.dto';
+import { WebSocketService } from '../websocket/websocket.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class InventoryService {
+  constructor(private readonly webSocketService: WebSocketService) {}
+  
   private inventoryHistory: InventoryHistory[] = [];
   
   // Mock product data for inventory calculations
@@ -209,6 +212,14 @@ export class InventoryService {
     };
 
     this.inventoryHistory.push(historyEntry);
+
+    // Emit WebSocket events for stock change
+    this.webSocketService.emitStockChanged(
+      productId,
+      product.name,
+      newQuantity,
+      product.minThreshold
+    );
 
     // Return updated inventory item
     return this.getProductInventory(productId);

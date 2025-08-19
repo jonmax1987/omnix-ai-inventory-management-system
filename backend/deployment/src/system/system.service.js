@@ -38,13 +38,18 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SystemService = void 0;
 const common_1 = require("@nestjs/common");
+const websocket_service_1 = require("../websocket/websocket.service");
 const os = __importStar(require("os"));
 const process = __importStar(require("process"));
 let SystemService = class SystemService {
-    constructor() {
+    constructor(webSocketService) {
+        this.webSocketService = webSocketService;
         this.startTime = Date.now();
         this.requestCount = 0;
         this.totalResponseTime = 0;
@@ -194,9 +199,16 @@ let SystemService = class SystemService {
     incrementErrorCount() {
         this.errorCount++;
     }
+    async announceSystemMaintenance(maintenanceData) {
+        this.webSocketService.emitSystemMaintenance({
+            ...maintenanceData,
+            timestamp: new Date().toISOString(),
+        });
+    }
 };
 exports.SystemService = SystemService;
 exports.SystemService = SystemService = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [websocket_service_1.WebSocketService])
 ], SystemService);
 //# sourceMappingURL=system.service.js.map

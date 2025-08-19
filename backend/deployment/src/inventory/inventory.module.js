@@ -10,11 +10,13 @@ exports.InventoryModule = void 0;
 const common_1 = require("@nestjs/common");
 const inventory_controller_1 = require("./inventory.controller");
 const inventory_service_1 = require("./inventory.service");
+const websocket_module_1 = require("../websocket/websocket.module");
 let InventoryModule = class InventoryModule {
 };
 exports.InventoryModule = InventoryModule;
 exports.InventoryModule = InventoryModule = __decorate([
     (0, common_1.Module)({
+        imports: [websocket_module_1.WebSocketModule],
         controllers: [inventory_controller_1.InventoryController],
         providers: [inventory_service_1.InventoryService],
         exports: [inventory_service_1.InventoryService],
