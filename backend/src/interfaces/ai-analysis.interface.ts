@@ -74,3 +74,32 @@ export interface BedrockAnalysisResponse {
   processingTime?: number;
   cached?: boolean;
 }
+
+// A/B Testing Interfaces
+export interface ABTestResult {
+  testId: string;
+  testName: string;
+  status: 'pending' | 'running' | 'completed' | 'paused';
+  modelA: {
+    name: string;
+    metrics: ModelPerformanceMetrics;
+  };
+  modelB: {
+    name: string;
+    metrics: ModelPerformanceMetrics;
+  };
+  winner: 'A' | 'B' | 'tie';
+  significance: number;
+  recommendations: string[];
+  startDate: string;
+  endDate: string;
+}
+
+export interface ModelPerformanceMetrics {
+  totalRequests: number;
+  successRate: number;
+  averageProcessingTime: number;
+  averageConfidence: number;
+  averageTokenCost: number;
+  customerSatisfactionScore?: number;
+}
