@@ -27,6 +27,8 @@
     "@aws-sdk/client-bedrock-runtime": "^3.864.0",
     "@aws-sdk/client-cloudwatch": "^3.864.0",
     "@aws-sdk/client-dynamodb": "^3.868.0",
+    "@aws-sdk/client-kinesis": "^3.864.0",
+    "@aws-sdk/client-kinesis-analytics-v2": "^3.864.0",
     "@aws-sdk/client-sqs": "^3.864.0",
     "@aws-sdk/lib-dynamodb": "^3.868.0",
     "@aws-sdk/util-dynamodb": "^3.868.0",

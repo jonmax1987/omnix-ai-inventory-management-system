@@ -660,7 +660,86 @@ class InStorePersonalizationEngine {
 
 ## 6. Implementation Architecture
 
-### 6.1 Technical Infrastructure
+### 6.1 Real-time Streaming Analytics Architecture (Phase 5 Implementation)
+
+#### **Streaming Data Flow**
+```mermaid
+graph TD
+    A[Customer Actions] --> B[Event Sources]
+    B --> C[Event Publishing]
+    C --> D[AWS Kinesis Stream]
+    D --> E[Real-time Processing]
+    E --> F[Insight Generation]
+    F --> G[Action Triggers]
+    
+    B1[Order Completion] --> C
+    B2[Segment Updates] --> C
+    B3[Consumption Predictions] --> C
+    
+    E1[Behavior Analysis] --> F
+    E2[Anomaly Detection] --> F
+    E3[Pattern Recognition] --> F
+    
+    G1[WebSocket Notifications] --> H[Customer Dashboard]
+    G2[Cache Updates] --> I[Personalization Engine]
+    G3[Alert Triggers] --> J[Business Operations]
+```
+
+#### **Event-Driven Architecture Components**
+- **KinesisStreamingService**: Publishes events to AWS Kinesis data streams
+- **RealtimeAnalyticsService**: Processes streaming events and generates instant insights
+- **Automatic Event Integration**: Orders and Customer Segmentation services publish events automatically
+- **Real-time Insights Engine**: WebSocket notifications and anomaly detection
+- **Event Types**: Purchase events, segment updates, consumption predictions
+
+#### **Streaming Analytics APIs (8 Endpoints)**
+1. `POST /v1/streaming/events/purchase` - Publish purchase events
+2. `POST /v1/streaming/events/segment-update` - Publish segment changes
+3. `POST /v1/streaming/events/consumption-prediction` - Publish predictions
+4. `POST /v1/streaming/events/batch` - Bulk event publishing
+5. `GET /v1/streaming/stream/status` - Monitor stream health
+6. `GET /v1/streaming/stream/metrics` - Performance metrics
+7. `GET /v1/streaming/insights/{customerId}` - Customer insights
+8. `GET /v1/streaming/insights/system/overview` - System overview
+
+### 6.2 A/B Testing & Model Optimization Framework (Phase 5 Implementation)
+
+#### **A/B Testing Architecture**
+```typescript
+// Enhanced Bedrock Service with A/B Testing
+export class EnhancedBedrockService {
+  async analyzeWithTesting(customerId: string, analysisRequest: any) {
+    // Determine which model to use based on A/B test assignment
+    const testAssignment = await this.abTestingService.getModelAssignment(customerId);
+    
+    // Use appropriate model (Claude 3 Haiku vs Sonnet)
+    const model = testAssignment.modelId;
+    const result = await this.bedrock.invokeModel(model, analysisRequest);
+    
+    // Track performance metrics
+    await this.abTestingService.recordResult(testAssignment.testId, {
+      customerId,
+      modelId: model,
+      success: result.success,
+      latency: result.processingTime,
+      cost: result.estimatedCost
+    });
+    
+    return result;
+  }
+}
+```
+
+#### **A/B Testing APIs (7 Endpoints)**
+1. `POST /v1/ab-testing/tests` - Create new A/B tests
+2. `GET /v1/ab-testing/tests` - List active tests
+3. `GET /v1/ab-testing/tests/{testId}/results` - Get test results
+4. `POST /v1/ab-testing/tests/{testId}/stop` - Stop running tests
+5. `GET /v1/ab-testing/tests/{testId}/metrics` - Detailed metrics
+6. `GET /v1/ab-testing/assignments/{customerId}` - Customer assignments
+7. `GET /v1/ab-testing/performance/comparison` - Model comparisons
+
+### 6.3 Technical Infrastructure
 
 #### **Lambda Functions Architecture**
 ```typescript

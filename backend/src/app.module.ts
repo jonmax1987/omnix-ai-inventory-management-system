@@ -12,6 +12,7 @@ import { SystemModule } from './system/system.module';
 import { OrdersModule } from './orders/orders.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { CustomersModule } from './customers/customers.module';
+import { StreamingModule } from './streaming/streaming.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -28,6 +29,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     OrdersModule,
     WebSocketModule,
     CustomersModule,
+    StreamingModule,
   ],
   providers: [
     {

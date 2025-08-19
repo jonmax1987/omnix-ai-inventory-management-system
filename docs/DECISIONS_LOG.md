@@ -125,6 +125,86 @@ Each decision should include:
 
 ---
 
+## 2025-01-19: A/B Testing Framework - Haiku vs Sonnet Model Optimization
+
+**Decision**: Implement A/B testing framework to compare Claude 3 Haiku vs Sonnet performance
+
+**Reasoning**:
+- Data-driven decision making for model selection
+- Cost optimization through performance comparison
+- Gradual rollout capability for new models
+- Statistical significance testing for reliability
+- Real-time performance metrics tracking
+
+**Alternatives Considered**:
+- Single model approach: Less optimal, no performance insights
+- Manual model switching: Human error prone, no statistical validation
+- External A/B testing service: Additional complexity, data privacy concerns
+- Feature flags only: No statistical analysis capabilities
+
+**Impact**:
+- Enhanced AI analysis accuracy through optimal model selection
+- Cost reduction by identifying most cost-effective models
+- Risk mitigation through gradual model deployment
+- Improved decision-making with statistical evidence
+- 7 new API endpoints for comprehensive test management
+
+---
+
+## 2025-01-19: Real-time Streaming Analytics - AWS Kinesis Integration
+
+**Decision**: Implement real-time streaming analytics using AWS Kinesis for event processing
+
+**Reasoning**:
+- Instant customer insights and personalization
+- Proactive customer management through early detection
+- Real-time anomaly detection and behavioral analysis
+- Improved conversion rates through immediate responses
+- Scalable event-driven architecture
+
+**Alternatives Considered**:
+- Batch processing only: Would miss real-time opportunities
+- WebSocket polling: High overhead, not scalable
+- Amazon MSK (Kafka): More complex setup, higher operational overhead
+- SQS + Lambda: Limited throughput, not designed for streaming
+- Direct database updates: No streaming capabilities, high latency
+
+**Impact**:
+- Real-time customer experience enhancement
+- Proactive business operations through instant alerts
+- Improved personalization engine responsiveness
+- Better customer retention through early risk detection
+- 8 new streaming API endpoints for event management
+- Automatic event publishing from Orders and Customer Segmentation
+
+---
+
+## 2025-01-19: Event-Driven Architecture - Automatic Integration
+
+**Decision**: Integrate event publishing automatically into existing services (Orders, Customer Segmentation)
+
+**Reasoning**:
+- Seamless data flow without manual intervention
+- Consistent event publishing across all customer interactions
+- Reduced development overhead for future features
+- Improved data consistency and reliability
+- Better separation of concerns
+
+**Alternatives Considered**:
+- Manual event publishing: Error-prone, inconsistent
+- Scheduled batch publishing: Would lose real-time benefits
+- Database triggers: Technology-specific, harder to maintain
+- External ETL processes: Added complexity, potential delays
+
+**Impact**:
+- Automatic purchase event publishing when orders are received
+- Automatic segment update events when customer segments change
+- Comprehensive audit trail of all customer interactions
+- Foundation for future event-driven features
+- Improved system reliability and data consistency
+
+---
+
 ## Template for Future Decisions
 
 ## YYYY-MM-DD: [Decision Title]

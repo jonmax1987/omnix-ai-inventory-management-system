@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BedrockAnalysisService } from './bedrock.service';
 import { CacheService } from './cache.service';
 import { MonitoringService } from './monitoring.service';
+import { KinesisStreamingService } from './kinesis-streaming.service';
+import { CustomerSegmentUpdateEvent } from '../interfaces/streaming-analytics.interface';
 import {
   CustomerSegment,
   CustomerSegmentAssignment,
@@ -20,9 +22,11 @@ import { Purchase } from '../interfaces/ai-analysis.interface';
 
 @Injectable()
 export class CustomerSegmentationService {
+  private readonly logger = new Logger(CustomerSegmentationService.name);
   private readonly bedrock: BedrockAnalysisService;
   private readonly cache: CacheService;
   private readonly monitoring: MonitoringService;
+  private readonly kinesisStreamingService: KinesisStreamingService;
   private segments: Map<string, CustomerSegment> = new Map();
   private customerAssignments: Map<string, CustomerSegmentAssignment> = new Map();
 
@@ -30,6 +34,7 @@ export class CustomerSegmentationService {
     this.bedrock = new BedrockAnalysisService();
     this.cache = new CacheService();
     this.monitoring = new MonitoringService();
+    this.kinesisStreamingService = new KinesisStreamingService();
     this.initializePredefinedSegments();
   }
 
@@ -171,6 +176,18 @@ export class CustomerSegmentationService {
 
     // Update internal state
     this.customerAssignments.set(customerId, assignment);
+    
+    // Publish segment update event to Kinesis for real-time analytics
+    if (previousAssignment && previousAssignment.segmentId !== finalSegmentId) {
+      this.publishSegmentUpdateEvent(assignment, previousAssignment.segmentId).catch(error => {
+        this.logger.error('Failed to publish segment update event:', error);
+      });
+    } else if (!previousAssignment) {
+      // New customer assignment
+      this.publishSegmentUpdateEvent(assignment, null).catch(error => {
+        this.logger.error('Failed to publish segment assignment event:', error);
+      });
+    }
     
     // Update segment statistics
     this.updateSegmentStatistics(finalSegmentId, features);
@@ -867,5 +884,73 @@ export class CustomerSegmentationService {
       toSegment: migration.toSegment,
       reason: migration.reason
     });
+  }
+
+  private async publishSegmentUpdateEvent(
+    assignment: CustomerSegmentAssignment,
+    previousSegmentId: string | null
+  ): Promise<void> {
+    try {
+      const segmentUpdateEvent: CustomerSegmentUpdateEvent = {
+        customerId: assignment.customerId,
+        previousSegment: previousSegmentId,
+        newSegment: assignment.segmentName,
+        segmentationScore: assignment.confidence,
+        reasonCodes: this.getSegmentReasonCodes(assignment, previousSegmentId),
+        timestamp: assignment.assignedAt,
+        confidence: assignment.confidence,
+        modelVersion: 'v1.0'
+      };
+
+      await this.kinesisStreamingService.publishSegmentUpdateEvent(segmentUpdateEvent);
+      
+      this.logger.log(`Published segment update event for customer ${assignment.customerId}: ${previousSegmentId || 'new'} → ${assignment.segmentName}`);
+    } catch (error) {
+      this.logger.error('Failed to publish segment update event:', error);
+      throw error;
+    }
+  }
+
+  private getSegmentReasonCodes(
+    assignment: CustomerSegmentAssignment,
+    previousSegmentId: string | null
+  ): string[] {
+    const reasonCodes: string[] = [];
+    const features = assignment.features;
+
+    // Analyze key factors that influenced segmentation
+    if (features.totalSpent > 1000) {
+      reasonCodes.push('high_value_customer');
+    }
+    
+    if (features.purchaseFrequency > 10) {
+      reasonCodes.push('frequent_purchaser');
+    }
+    
+    if (features.averageOrderValue > 100) {
+      reasonCodes.push('high_order_value');
+    }
+    
+    if (features.daysSinceLastPurchase < 7) {
+      reasonCodes.push('recent_activity');
+    } else if (features.daysSinceLastPurchase > 90) {
+      reasonCodes.push('inactive_period');
+    }
+    
+    if (features.totalPurchases > 20) {
+      reasonCodes.push('loyal_customer');
+    }
+
+    // Migration-specific reasons
+    if (previousSegmentId && assignment.migrationReason) {
+      reasonCodes.push(`migration_${assignment.migrationReason.toLowerCase().replace(/\s+/g, '_')}`);
+    }
+
+    // Default reason if none found
+    if (reasonCodes.length === 0) {
+      reasonCodes.push('standard_classification');
+    }
+
+    return reasonCodes;
   }
 }

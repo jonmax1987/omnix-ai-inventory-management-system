@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { 
   CreateOrderDto, 
   UpdateOrderDto, 
@@ -10,10 +10,13 @@ import {
 } from '../common/dto/order.dto';
 import { WebSocketService } from '../websocket/websocket.service';
 import { CustomersService } from '../customers/customers.service';
+import { KinesisStreamingService } from '../services/kinesis-streaming.service';
+import { PurchaseEvent } from '../interfaces/streaming-analytics.interface';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   private orders: Order[] = [];
   private orderCounter = 1000;
 
@@ -42,6 +45,7 @@ export class OrdersService {
   constructor(
     private readonly webSocketService: WebSocketService,
     private readonly customersService: CustomersService,
+    private readonly kinesisStreamingService: KinesisStreamingService,
   ) {
     // Initialize with some mock orders
     this.initializeMockOrders();
@@ -223,10 +227,15 @@ export class OrdersService {
       if (updateOrderDto.status === OrderStatus.RECEIVED && order.status !== OrderStatus.RECEIVED) {
         order.actualDeliveryDate = new Date().toISOString();
         
-        // Track purchase history for customer if customerId is available
+        // Track purchase history for customer and publish streaming events
         if (order.createdBy) {
           this.trackPurchaseHistory(order).catch(error => {
-            console.error('Error tracking purchase history:', error);
+            this.logger.error('Error tracking purchase history:', error);
+          });
+          
+          // Publish purchase events to Kinesis for real-time analytics
+          this.publishPurchaseEvents(order).catch(error => {
+            this.logger.error('Error publishing purchase events:', error);
           });
         }
       }
@@ -345,7 +354,70 @@ export class OrdersService {
         });
       }
     } catch (error) {
-      console.error('Failed to track purchase history for order:', order.id, error);
+      this.logger.error('Failed to track purchase history for order:', order.id, error);
     }
+  }
+
+  private async publishPurchaseEvents(order: Order): Promise<void> {
+    try {
+      const purchaseEvents: PurchaseEvent[] = [];
+
+      for (const item of order.items) {
+        const purchaseEvent: PurchaseEvent = {
+          customerId: order.createdBy,
+          productId: item.productId,
+          productCategory: this.getProductCategory(item.productName),
+          productName: item.productName,
+          quantity: item.quantity,
+          price: item.unitPrice,
+          totalAmount: item.totalPrice,
+          timestamp: order.actualDeliveryDate || new Date().toISOString(),
+          location: order.supplier,
+          paymentMethod: 'business_account',
+          deviceType: 'pos',
+          metadata: {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            sku: item.sku,
+            supplier: order.supplier,
+            notes: item.notes
+          }
+        };
+
+        purchaseEvents.push(purchaseEvent);
+      }
+
+      // Publish events in batch for better performance
+      if (purchaseEvents.length > 0) {
+        await this.kinesisStreamingService.publishBatchEvents(purchaseEvents);
+        this.logger.log(`Published ${purchaseEvents.length} purchase events for order ${order.orderNumber}`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to publish purchase events for order:', order.id, error);
+      throw error;
+    }
+  }
+
+  private getProductCategory(productName: string): string {
+    // Simple categorization based on product name
+    const name = productName.toLowerCase();
+    
+    if (name.includes('coffee') || name.includes('tea')) {
+      return 'beverages';
+    }
+    if (name.includes('flour') || name.includes('bread') || name.includes('grain')) {
+      return 'bakery';
+    }
+    if (name.includes('milk') || name.includes('cheese') || name.includes('dairy')) {
+      return 'dairy';
+    }
+    if (name.includes('meat') || name.includes('beef') || name.includes('chicken')) {
+      return 'meat';
+    }
+    if (name.includes('fruit') || name.includes('vegetable') || name.includes('produce')) {
+      return 'produce';
+    }
+    
+    return 'other';
   }
 }
