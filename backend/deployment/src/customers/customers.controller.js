@@ -15,12 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomersController = void 0;
 const common_1 = require("@nestjs/common");
 const customers_service_1 = require("./customers.service");
+const ai_analysis_service_1 = require("./ai-analysis.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const user_decorator_1 = require("../auth/decorators/user.decorator");
 const customer_dto_1 = require("../common/dto/customer.dto");
 let CustomersController = class CustomersController {
-    constructor(customersService) {
+    constructor(customersService, aiAnalysisService) {
         this.customersService = customersService;
+        this.aiAnalysisService = aiAnalysisService;
     }
     async registerCustomer(createDto, user) {
         const customerId = createDto.customerId || user.id;
@@ -65,6 +67,32 @@ let CustomersController = class CustomersController {
     async getAllCustomers(limit) {
         const limitNum = limit ? parseInt(limit, 10) : 100;
         return this.customersService.getAllCustomers(limitNum);
+    }
+    async getCustomerAIAnalysis(customerId) {
+        return this.aiAnalysisService.analyzeCustomerConsumption(customerId);
+    }
+    async getConsumptionPredictions(customerId) {
+        return this.aiAnalysisService.analyzeCustomerConsumption(customerId);
+    }
+    async getCustomerProfileAnalysis(customerId) {
+        return this.aiAnalysisService.analyzeCustomerProfile(customerId);
+    }
+    async getAIRecommendations(customerId, limit) {
+        const limitNum = limit ? parseInt(limit, 10) : 5;
+        return this.aiAnalysisService.generateRecommendations(customerId, limitNum);
+    }
+    async getReplenishmentAlerts(customerId) {
+        return this.aiAnalysisService.getReplenishmentAlerts(customerId);
+    }
+    async predictNextPurchase(customerId, productId) {
+        return this.aiAnalysisService.predictNextPurchaseDate(customerId, productId);
+    }
+    async triggerAIAnalysis(customerId) {
+        return this.aiAnalysisService.analyzeCustomerConsumption(customerId);
+    }
+    async getAnalysisHistory(customerId, limit) {
+        const limitNum = limit ? parseInt(limit, 10) : 10;
+        return this.aiAnalysisService.getCustomerAnalysisHistory(customerId, limitNum);
     }
 };
 exports.CustomersController = CustomersController;
@@ -164,9 +192,70 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CustomersController.prototype, "getAllCustomers", null);
+__decorate([
+    (0, common_1.Get)(':id/ai-analysis'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getCustomerAIAnalysis", null);
+__decorate([
+    (0, common_1.Get)(':id/consumption-predictions'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getConsumptionPredictions", null);
+__decorate([
+    (0, common_1.Get)(':id/customer-profile-analysis'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getCustomerProfileAnalysis", null);
+__decorate([
+    (0, common_1.Get)(':id/ai-recommendations'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getAIRecommendations", null);
+__decorate([
+    (0, common_1.Get)(':id/replenishment-alerts'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getReplenishmentAlerts", null);
+__decorate([
+    (0, common_1.Get)(':id/purchase-prediction/:productId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('productId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "predictNextPurchase", null);
+__decorate([
+    (0, common_1.Post)(':id/analyze'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "triggerAIAnalysis", null);
+__decorate([
+    (0, common_1.Get)(':id/analysis-history'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "getAnalysisHistory", null);
 exports.CustomersController = CustomersController = __decorate([
     (0, common_1.Controller)('v1/customers'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [customers_service_1.CustomersService])
+    __metadata("design:paramtypes", [customers_service_1.CustomersService,
+        ai_analysis_service_1.AIAnalysisService])
 ], CustomersController);
 //# sourceMappingURL=customers.controller.js.map

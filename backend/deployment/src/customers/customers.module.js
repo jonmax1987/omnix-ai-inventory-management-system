@@ -10,7 +10,9 @@ exports.CustomersModule = void 0;
 const common_1 = require("@nestjs/common");
 const customers_service_1 = require("./customers.service");
 const customers_controller_1 = require("./customers.controller");
+const ai_analysis_service_1 = require("./ai-analysis.service");
 const dynamodb_service_1 = require("../services/dynamodb.service");
+const bedrock_service_1 = require("../services/bedrock.service");
 let CustomersModule = class CustomersModule {
 };
 exports.CustomersModule = CustomersModule;
@@ -18,8 +20,13 @@ exports.CustomersModule = CustomersModule = __decorate([
     (0, common_1.Module)({
         imports: [],
         controllers: [customers_controller_1.CustomersController],
-        providers: [customers_service_1.CustomersService, dynamodb_service_1.DynamoDBService],
-        exports: [customers_service_1.CustomersService],
+        providers: [
+            customers_service_1.CustomersService,
+            ai_analysis_service_1.AIAnalysisService,
+            bedrock_service_1.BedrockAnalysisService,
+            dynamodb_service_1.DynamoDBService
+        ],
+        exports: [customers_service_1.CustomersService, ai_analysis_service_1.AIAnalysisService],
     })
 ], CustomersModule);
 //# sourceMappingURL=customers.module.js.map
