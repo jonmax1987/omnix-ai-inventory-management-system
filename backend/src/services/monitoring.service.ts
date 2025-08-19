@@ -335,4 +335,71 @@ export class MonitoringService {
 
     await this.publishMetrics(metricData);
   }
+
+  /**
+   * Record customer segmentation metrics
+   */
+  async recordSegmentationMetrics(metrics: {
+    customersSegmented: number;
+    processingTime: number;
+    averageConfidence: number;
+  }): Promise<void> {
+    const metricData: MetricDatum[] = [
+      {
+        MetricName: 'CustomerSegmentationCount',
+        Value: metrics.customersSegmented,
+        Unit: 'Count',
+        Dimensions: [
+          { Name: 'Service', Value: 'CustomerSegmentation' }
+        ],
+        Timestamp: new Date()
+      },
+      {
+        MetricName: 'SegmentationProcessingTime',
+        Value: metrics.processingTime,
+        Unit: 'Milliseconds',
+        Dimensions: [
+          { Name: 'Service', Value: 'CustomerSegmentation' }
+        ],
+        Timestamp: new Date()
+      },
+      {
+        MetricName: 'SegmentationConfidence',
+        Value: metrics.averageConfidence,
+        Unit: 'Percent',
+        Dimensions: [
+          { Name: 'Service', Value: 'CustomerSegmentation' }
+        ],
+        Timestamp: new Date()
+      }
+    ];
+
+    await this.publishMetrics(metricData);
+  }
+
+  /**
+   * Record segment migration metrics
+   */
+  async recordSegmentMigration(migration: {
+    customerId: string;
+    fromSegment: string;
+    toSegment: string;
+    reason: string;
+  }): Promise<void> {
+    const metricData: MetricDatum[] = [
+      {
+        MetricName: 'SegmentMigration',
+        Value: 1,
+        Unit: 'Count',
+        Dimensions: [
+          { Name: 'Service', Value: 'CustomerSegmentation' },
+          { Name: 'FromSegment', Value: migration.fromSegment },
+          { Name: 'ToSegment', Value: migration.toSegment }
+        ],
+        Timestamp: new Date()
+      }
+    ];
+
+    await this.publishMetrics(metricData);
+  }
 }

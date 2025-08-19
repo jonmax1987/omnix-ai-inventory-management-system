@@ -378,4 +378,57 @@ export class CacheService {
     
     console.log('🔥 Cache warming completed');
   }
+
+  /**
+   * Generic get method for simple string caching
+   */
+  async get(key: string): Promise<string | null> {
+    try {
+      const result = await this.dynamoClient.send(new GetCommand({
+        TableName: this.tableName,
+        Key: { cacheKey: key },
+      }));
+
+      if (!result.Item) {
+        return null;
+      }
+
+      const entry = result.Item as any;
+      
+      // Check if expired
+      if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) {
+        await this.deleteCacheEntry(key);
+        return null;
+      }
+
+      return entry.value || null;
+    } catch (error) {
+      console.error('❌ Generic cache get failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generic set method for simple string caching
+   */
+  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    const now = new Date();
+    const expiresAt = ttlSeconds 
+      ? new Date(now.getTime() + ttlSeconds * 1000)
+      : new Date(now.getTime() + 3600 * 1000); // Default 1 hour
+
+    try {
+      await this.dynamoClient.send(new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          cacheKey: key,
+          value,
+          createdAt: now.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+        },
+      }));
+    } catch (error) {
+      console.error('❌ Generic cache set failed:', error);
+    }
+  }
 }

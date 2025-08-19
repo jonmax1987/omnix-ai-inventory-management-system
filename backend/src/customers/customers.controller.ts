@@ -15,8 +15,15 @@ import { CustomersService } from './customers.service';
 import { AIAnalysisService } from './ai-analysis.service';
 import { CostAnalyticsService } from '../services/cost-analytics.service';
 import { BatchProcessingService } from '../services/batch-processing.service';
+import { CustomerSegmentationService } from '../services/customer-segmentation.service';
 import { CostAnalytics, TopCustomerCost } from '../interfaces/cost-analytics.interface';
 import { BatchStatusResponse, QueueStats, BatchRequest } from '../interfaces/batch-processing.interface';
+import { 
+  SegmentationRequest, 
+  SegmentationResponse, 
+  SegmentPerformanceMetrics,
+  CustomerSegment 
+} from '../interfaces/customer-segmentation.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/user.decorator';
 import {
@@ -37,6 +44,7 @@ export class CustomersController {
     private readonly aiAnalysisService: AIAnalysisService,
     private readonly costAnalyticsService: CostAnalyticsService,
     private readonly batchProcessingService: BatchProcessingService,
+    private readonly segmentationService: CustomerSegmentationService,
   ) {}
 
   @Post('register')
@@ -240,5 +248,118 @@ export class CustomersController {
   @Get('batch-analysis/queue/stats')
   async getQueueStats(): Promise<QueueStats> {
     return this.batchProcessingService.getQueueStats();
+  }
+
+  // Customer Segmentation Endpoints
+  @Post(':id/segmentation')
+  async segmentCustomer(
+    @Param('id') customerId: string,
+    @Body() request?: Partial<SegmentationRequest>
+  ): Promise<SegmentationResponse> {
+    const segmentationRequest: SegmentationRequest = {
+      customerId,
+      analysisDepth: request?.analysisDepth || 'detailed',
+      includeRecommendations: request?.includeRecommendations !== false,
+      forceRecalculation: request?.forceRecalculation || false
+    };
+    return this.segmentationService.segmentCustomers(segmentationRequest);
+  }
+
+  @Post('segmentation/batch')
+  async segmentCustomersBatch(
+    @Body() request: SegmentationRequest
+  ): Promise<SegmentationResponse> {
+    return this.segmentationService.segmentCustomers(request);
+  }
+
+  @Get(':id/segment')
+  async getCustomerSegment(
+    @Param('id') customerId: string
+  ): Promise<SegmentationResponse> {
+    return this.segmentationService.segmentCustomers({
+      customerId,
+      analysisDepth: 'basic',
+      includeRecommendations: false
+    });
+  }
+
+  @Get('segments/overview')
+  async getSegmentOverview(): Promise<{
+    segments: CustomerSegment[];
+    statistics: any;
+  }> {
+    const result = await this.segmentationService.segmentCustomers({
+      analysisDepth: 'basic',
+      includeRecommendations: false
+    });
+    
+    return {
+      segments: result.segments || [],
+      statistics: result.statistics
+    };
+  }
+
+  @Get('segments/:segmentId/performance')
+  async getSegmentPerformance(
+    @Param('segmentId') segmentId: string
+  ): Promise<SegmentPerformanceMetrics> {
+    return this.segmentationService.getSegmentPerformance(segmentId);
+  }
+
+  @Post('segments/migrate')
+  async trackSegmentMigration(
+    @Body() migration: {
+      customerId: string;
+      fromSegment: string;
+      toSegment: string;
+      reason: string;
+      impactScore?: number;
+    }
+  ): Promise<{ success: boolean; message: string }> {
+    await this.segmentationService.trackSegmentMigration({
+      customerId: migration.customerId,
+      fromSegment: migration.fromSegment,
+      toSegment: migration.toSegment,
+      migrationDate: new Date().toISOString(),
+      reason: migration.reason,
+      impactScore: migration.impactScore || 0
+    });
+
+    return {
+      success: true,
+      message: `Migration tracked for customer ${migration.customerId}`
+    };
+  }
+
+  @Get(':id/segment-recommendations')
+  async getSegmentBasedRecommendations(
+    @Param('id') customerId: string,
+    @Query('includeStrategy') includeStrategy?: string
+  ): Promise<{
+    segment: string;
+    recommendations: any[];
+    strategy?: any;
+  }> {
+    const segmentation = await this.segmentationService.segmentCustomers({
+      customerId,
+      analysisDepth: 'detailed',
+      includeRecommendations: true
+    });
+
+    const assignment = segmentation.assignments?.[0];
+    if (!assignment) {
+      throw new Error('Customer segment not found');
+    }
+
+    const segment = segmentation.segments?.find(s => s.segmentId === assignment.segmentId);
+    
+    // Get AI recommendations tailored to the segment
+    const recommendations = await this.aiAnalysisService.generateRecommendations(customerId, 5);
+
+    return {
+      segment: assignment.segmentName,
+      recommendations: recommendations.recommendations || [],
+      strategy: includeStrategy === 'true' ? segment?.recommendations : undefined
+    };
   }
 }
