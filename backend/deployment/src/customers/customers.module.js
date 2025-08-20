@@ -13,20 +13,35 @@ const customers_controller_1 = require("./customers.controller");
 const ai_analysis_service_1 = require("./ai-analysis.service");
 const dynamodb_service_1 = require("../services/dynamodb.service");
 const bedrock_service_1 = require("../services/bedrock.service");
+const ab_testing_service_1 = require("../services/ab-testing.service");
+const enhanced_bedrock_service_1 = require("../services/enhanced-bedrock.service");
+const ab_testing_controller_1 = require("../controllers/ab-testing.controller");
+const monitoring_service_1 = require("../services/monitoring.service");
+const cost_analytics_service_1 = require("../services/cost-analytics.service");
+const batch_processing_service_1 = require("../services/batch-processing.service");
+const customer_segmentation_service_1 = require("../services/customer-segmentation.service");
+const cache_service_1 = require("../services/cache.service");
 let CustomersModule = class CustomersModule {
 };
 exports.CustomersModule = CustomersModule;
 exports.CustomersModule = CustomersModule = __decorate([
     (0, common_1.Module)({
         imports: [],
-        controllers: [customers_controller_1.CustomersController],
+        controllers: [customers_controller_1.CustomersController, ab_testing_controller_1.ABTestingController],
         providers: [
             customers_service_1.CustomersService,
             ai_analysis_service_1.AIAnalysisService,
             bedrock_service_1.BedrockAnalysisService,
-            dynamodb_service_1.DynamoDBService
+            ab_testing_service_1.ABTestingService,
+            enhanced_bedrock_service_1.EnhancedBedrockService,
+            dynamodb_service_1.DynamoDBService,
+            monitoring_service_1.MonitoringService,
+            cost_analytics_service_1.CostAnalyticsService,
+            batch_processing_service_1.BatchProcessingService,
+            customer_segmentation_service_1.CustomerSegmentationService,
+            cache_service_1.CacheService
         ],
-        exports: [customers_service_1.CustomersService, ai_analysis_service_1.AIAnalysisService],
+        exports: [customers_service_1.CustomersService, ai_analysis_service_1.AIAnalysisService, enhanced_bedrock_service_1.EnhancedBedrockService],
     })
 ], CustomersModule);
 //# sourceMappingURL=customers.module.js.map

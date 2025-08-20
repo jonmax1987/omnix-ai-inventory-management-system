@@ -45,16 +45,16 @@ async function createServer() {
         allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
       });
 
-      console.log('⚡ Setting up rate limiting...');
-      // Apply rate limiting
-      try {
-        app.use('/v1/', apiLimiter);
-        app.use('/v1/auth/login', authLimiter);
-        app.use('/v1/auth/refresh', authLimiter);
-      } catch (rateLimitError) {
-        console.warn('⚠️ Rate limiting setup failed:', rateLimitError);
-        // Continue without rate limiting in Lambda
-      }
+      console.log('⚡ Skipping rate limiting for development...');
+      // Skip rate limiting in Lambda for development
+      // try {
+      //   app.use('/v1/', apiLimiter);
+      //   app.use('/v1/auth/login', authLimiter);
+      //   app.use('/v1/auth/refresh', authLimiter);
+      // } catch (rateLimitError) {
+      //   console.warn('⚠️ Rate limiting setup failed:', rateLimitError);
+      //   // Continue without rate limiting in Lambda
+      // }
 
       console.log('✅ Setting up validation pipes...');
       // Global validation pipe

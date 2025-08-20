@@ -8,17 +8,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var OrdersService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const order_dto_1 = require("../common/dto/order.dto");
 const websocket_service_1 = require("../websocket/websocket.service");
 const customers_service_1 = require("../customers/customers.service");
+const kinesis_streaming_service_1 = require("../services/kinesis-streaming.service");
 const uuid_1 = require("uuid");
-let OrdersService = class OrdersService {
-    constructor(webSocketService, customersService) {
+let OrdersService = OrdersService_1 = class OrdersService {
+    constructor(webSocketService, customersService, kinesisStreamingService) {
         this.webSocketService = webSocketService;
         this.customersService = customersService;
+        this.kinesisStreamingService = kinesisStreamingService;
+        this.logger = new common_1.Logger(OrdersService_1.name);
         this.orders = [];
         this.orderCounter = 1000;
         this.mockProducts = [
@@ -178,7 +182,10 @@ let OrdersService = class OrdersService {
                 order.actualDeliveryDate = new Date().toISOString();
                 if (order.createdBy) {
                     this.trackPurchaseHistory(order).catch(error => {
-                        console.error('Error tracking purchase history:', error);
+                        this.logger.error('Error tracking purchase history:', error);
+                    });
+                    this.publishPurchaseEvents(order).catch(error => {
+                        this.logger.error('Error publishing purchase events:', error);
                     });
                 }
             }
@@ -276,14 +283,70 @@ let OrdersService = class OrdersService {
             }
         }
         catch (error) {
-            console.error('Failed to track purchase history for order:', order.id, error);
+            this.logger.error('Failed to track purchase history for order:', order.id, error);
         }
+    }
+    async publishPurchaseEvents(order) {
+        try {
+            const purchaseEvents = [];
+            for (const item of order.items) {
+                const purchaseEvent = {
+                    customerId: order.createdBy,
+                    productId: item.productId,
+                    productCategory: this.getProductCategory(item.productName),
+                    productName: item.productName,
+                    quantity: item.quantity,
+                    price: item.unitPrice,
+                    totalAmount: item.totalPrice,
+                    timestamp: order.actualDeliveryDate || new Date().toISOString(),
+                    location: order.supplier,
+                    paymentMethod: 'business_account',
+                    deviceType: 'pos',
+                    metadata: {
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                        sku: item.sku,
+                        supplier: order.supplier,
+                        notes: item.notes
+                    }
+                };
+                purchaseEvents.push(purchaseEvent);
+            }
+            if (purchaseEvents.length > 0) {
+                await this.kinesisStreamingService.publishBatchEvents(purchaseEvents);
+                this.logger.log(`Published ${purchaseEvents.length} purchase events for order ${order.orderNumber}`);
+            }
+        }
+        catch (error) {
+            this.logger.error('Failed to publish purchase events for order:', order.id, error);
+            throw error;
+        }
+    }
+    getProductCategory(productName) {
+        const name = productName.toLowerCase();
+        if (name.includes('coffee') || name.includes('tea')) {
+            return 'beverages';
+        }
+        if (name.includes('flour') || name.includes('bread') || name.includes('grain')) {
+            return 'bakery';
+        }
+        if (name.includes('milk') || name.includes('cheese') || name.includes('dairy')) {
+            return 'dairy';
+        }
+        if (name.includes('meat') || name.includes('beef') || name.includes('chicken')) {
+            return 'meat';
+        }
+        if (name.includes('fruit') || name.includes('vegetable') || name.includes('produce')) {
+            return 'produce';
+        }
+        return 'other';
     }
 };
 exports.OrdersService = OrdersService;
-exports.OrdersService = OrdersService = __decorate([
+exports.OrdersService = OrdersService = OrdersService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [websocket_service_1.WebSocketService,
-        customers_service_1.CustomersService])
+        customers_service_1.CustomersService,
+        kinesis_streaming_service_1.KinesisStreamingService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

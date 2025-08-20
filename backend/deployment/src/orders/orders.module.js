@@ -12,6 +12,7 @@ const orders_controller_1 = require("./orders.controller");
 const orders_service_1 = require("./orders.service");
 const websocket_module_1 = require("../websocket/websocket.module");
 const customers_module_1 = require("../customers/customers.module");
+const kinesis_streaming_service_1 = require("../services/kinesis-streaming.service");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
@@ -19,7 +20,7 @@ exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
         imports: [websocket_module_1.WebSocketModule, customers_module_1.CustomersModule],
         controllers: [orders_controller_1.OrdersController],
-        providers: [orders_service_1.OrdersService],
+        providers: [orders_service_1.OrdersService, kinesis_streaming_service_1.KinesisStreamingService],
         exports: [orders_service_1.OrdersService],
     })
 ], OrdersModule);

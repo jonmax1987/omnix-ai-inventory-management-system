@@ -3,6 +3,9 @@ export declare class BedrockAnalysisService {
     private bedrock;
     private readonly modelId;
     private readonly region;
+    private readonly monitoring;
+    private readonly costAnalytics;
+    private readonly cache;
     constructor();
     analyzeCustomer(request: BedrockAnalysisRequest): Promise<BedrockAnalysisResponse>;
     private invokeBedrockModel;
@@ -21,4 +24,7 @@ export declare class BedrockAnalysisService {
     private inferShoppingFrequency;
     private generateBasicRecommendations;
     private sanitizeErrorMessage;
+    private recordAnalysisMetrics;
+    private estimateTokens;
+    recordCustomerEngagement(customerId: string, recommendationCount: number, accuracy?: number): Promise<void>;
 }

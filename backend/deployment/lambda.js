@@ -6,7 +6,6 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const platform_express_1 = require("@nestjs/platform-express");
 const app_module_1 = require("./src/app.module");
-const rate_limit_middleware_1 = require("./src/common/middleware/rate-limit.middleware");
 const serverless_express_1 = require("@vendia/serverless-express");
 const express = require("express");
 let cachedServer;
@@ -37,15 +36,7 @@ async function createServer() {
                 methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
                 allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
             });
-            console.log('⚡ Setting up rate limiting...');
-            try {
-                app.use('/v1/', rate_limit_middleware_1.apiLimiter);
-                app.use('/v1/auth/login', rate_limit_middleware_1.authLimiter);
-                app.use('/v1/auth/refresh', rate_limit_middleware_1.authLimiter);
-            }
-            catch (rateLimitError) {
-                console.warn('⚠️ Rate limiting setup failed:', rateLimitError);
-            }
+            console.log('⚡ Skipping rate limiting for development...');
             console.log('✅ Setting up validation pipes...');
             app.useGlobalPipes(new common_1.ValidationPipe({
                 whitelist: true,

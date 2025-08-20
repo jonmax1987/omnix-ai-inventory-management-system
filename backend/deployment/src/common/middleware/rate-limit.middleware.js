@@ -21,7 +21,7 @@ exports.apiLimiter = (0, express_rate_limit_1.default)({
 });
 exports.authLimiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 50,
     message: {
         error: 'Too Many Authentication Attempts',
         message: 'Too many authentication attempts from this IP, please try again later',

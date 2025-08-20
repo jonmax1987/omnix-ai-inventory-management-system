@@ -21,6 +21,7 @@ const system_module_1 = require("./system/system.module");
 const orders_module_1 = require("./orders/orders.module");
 const websocket_module_1 = require("./websocket/websocket.module");
 const customers_module_1 = require("./customers/customers.module");
+const streaming_module_1 = require("./streaming/streaming.module");
 const jwt_auth_guard_1 = require("./auth/guards/jwt-auth.guard");
 let AppModule = class AppModule {
 };
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
             orders_module_1.OrdersModule,
             websocket_module_1.WebSocketModule,
             customers_module_1.CustomersModule,
+            streaming_module_1.StreamingModule,
         ],
         providers: [
             {
