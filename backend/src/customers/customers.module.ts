@@ -9,6 +9,9 @@ import { EnhancedBedrockService } from '../services/enhanced-bedrock.service';
 import { ABTestingController } from '../controllers/ab-testing.controller';
 import { MonitoringService } from '../services/monitoring.service';
 import { CostAnalyticsService } from '../services/cost-analytics.service';
+import { BatchProcessingService } from '../services/batch-processing.service';
+import { CustomerSegmentationService } from '../services/customer-segmentation.service';
+import { CacheService } from '../services/cache.service';
 
 @Module({
   imports: [],
@@ -21,7 +24,10 @@ import { CostAnalyticsService } from '../services/cost-analytics.service';
     EnhancedBedrockService,
     DynamoDBService,
     MonitoringService,
-    CostAnalyticsService
+    CostAnalyticsService,
+    BatchProcessingService,
+    CustomerSegmentationService,
+    CacheService
   ],
   exports: [CustomersService, AIAnalysisService, EnhancedBedrockService],
 })
